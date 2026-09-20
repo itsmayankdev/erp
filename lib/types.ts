@@ -1,0 +1,4 @@
+export type ProcurementType = "Surplus / Dead Stock" | "Direct Corporate" | "Regular Supplier" | "Stock Purchase";
+export type DealStatus = "Opportunity" | "Negotiating" | "Committed" | "In Execution" | "Completed";
+export type Deal = { id:string; material:string; grade:string; quantity:number; unit:string; seller:string; buyer?:string; buyRate:number; sellRate?:number; status:DealStatus; procurementType:ProcurementType; agreementSeller:boolean; agreementBuyer:boolean; };
+export type DashboardData = { openDeals:number; opportunities:number; buyerDemands:number; inventoryValue:number; receivables:number; payables:number; todayPurchase:number; todaySales:number; todayProfit:number; };
