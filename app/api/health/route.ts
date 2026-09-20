@@ -1,3 +1,1 @@
-import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-export async function GET(){ try { await db.$queryRawUnsafe("SELECT 1"); return NextResponse.json({ok:true,database:"connected"}); } catch { return NextResponse.json({ok:false,database:"disconnected"},{status:503}); } }
+export async function GET(){return Response.json({ok:true,mode:"dashboard-preview",database:"not-connected-in-static-pages"});}
