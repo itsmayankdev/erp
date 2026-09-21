@@ -7,6 +7,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
  const [sellers,setSellers]=useState(initialSellers),[buyers,setBuyers]=useState(initialBuyers),[materials,setMaterials]=useState(initialMaterials);
  const [sellerId,setSellerId]=useState(""),[buyerId,setBuyerId]=useState(""),[materialId,setMaterialId]=useState("");
  const [newParty,setNewParty]=useState(false),[partyName,setPartyName]=useState(""),[partyPhone,setPartyPhone]=useState(""),[partyEmail,setPartyEmail]=useState(""),[partyCity,setPartyCity]=useState("");
+ const [newMaterial,setNewMaterial]=useState(false),[materialName,setMaterialName]=useState(""),[materialGrade,setMaterialGrade]=useState(""),[materialSpec,setMaterialSpec]=useState(""),[materialUnit,setMaterialUnit]=useState("KG");
  const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});
  const [saving,setSaving]=useState(false),[saved,setSaved]=useState("");
 
@@ -18,6 +19,14 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   else setBuyerId(id);
  }
  function chooseMaterial(id:string){setMaterialId(id);const x=materials.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,unit:x.unit||"KG"}));}
+ async function addMaterial(){
+  if(!materialName.trim())return;
+  const r=await fetch("/api/records?module=materials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:materialName,grade:materialGrade,specification:materialSpec,unit:materialUnit||"KG"})});
+  if(!r.ok){alert((await r.json()).error||"Unable to create material");return;}
+  const x=await r.json();
+  setMaterials((a:any[])=>[...a,x]); setMaterialId(x.id); setForm((f:any)=>({...f,unit:x.unit||"KG"}));
+  setNewMaterial(false);setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");
+ }
 
  async function addParty(){
   if(!partyName.trim())return;
@@ -54,7 +63,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>Material details</b><span>Existing master data auto-fills the known specification.</span></div>
       <div className="sdGrid">
-       <label>Material<select value={materialId} onChange={e=>chooseMaterial(e.target.value)}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}</select></label>
+       <label>Material<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewMaterial(true);setMaterialId("");}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select></label>
        <label>Grade<input value={selectedMaterial?.grade||""} readOnly placeholder="Auto-filled"/></label>
        <label>Specification<input value={selectedMaterial?.specification||""} readOnly placeholder="Auto-filled"/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
