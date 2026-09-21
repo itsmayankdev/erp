@@ -16,6 +16,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
   const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
   const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);
 
+  const materialOptions=useMemo(()=>materials.map((m:any)=>typeof m==="string"?{id:m,name:m}:m).filter((m:any)=>m?.name),[materials]);
   const materialNames=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
   const parties=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.name:r.buyer?.name)).filter(Boolean))).sort(),[rows,isSupply]);
   const cities=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.city:r.buyer?.city)||r.location).filter(Boolean))).sort(),[rows,isSupply]);
@@ -96,7 +97,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
     </div>
     <div className="registerFilters">
       <label>Company / {isSupply?"Supplier":"Buyer"}<select value={party} onChange={e=>setParty(e.target.value)}><option value="">All</option>{parties.map(x=><option key={x}>{x}</option>)}</select></label>
-      <label>Material<select value={material} onChange={e=>setMaterial(e.target.value)}><option value="">All materials</option>{materials.map(x=><option key={x}>{x}</option>)}</select></label>
+      <label>Material<select value={material} onChange={e=>setMaterial(e.target.value)}><option value="">All materials</option>{materialOptions.map((x:any)=><option key={x.id||x.name} value={x.name}>{x.name}</option>)}</select></label>
       <label>City / Location<select value={city} onChange={e=>setCity(e.target.value)}><option value="">All locations</option>{cities.map(x=><option key={x}>{x}</option>)}</select></label>
       <label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map(x=><option key={x}>{x}</option>)}</select></label>
       {isSupply&&<label>Source type<select value={type} onChange={e=>setType(e.target.value)}><option value="">All source types</option>{types.map(x=><option key={x}>{x}</option>)}</select></label>}
@@ -159,7 +160,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
         </div>
         <div className="editSectionTitle">Material & Commercial Details</div>
         <div className="editGrid">
-          <label>Material<input list="edit-material-options" value={editing.material} onChange={e=>{const name=e.target.value; const m=materials.find((x:any)=>x.name===name); setEditing({...editing,material:name,materialId:m?.id||""})}}/><datalist id="edit-material-options">{materials.map((m:any)=><option key={m.id} value={m.name}>{[m.grade,m.specification].filter(Boolean).join(" · ")}</option>)}</datalist></label>
+          <label>Material<input list="edit-material-options" value={editing.material} onChange={e=>{const name=e.target.value; const m=materialOptions.find((x:any)=>x.name===name); setEditing({...editing,material:name,materialId:m?.id||""})}}/><datalist id="edit-material-options">{materialOptions.map((m:any)=><option key={m.id||m.name} value={m.name}>{[m.grade,m.specification].filter(Boolean).join(" · ")}</option>)}</datalist></label>
           <label>Grade<input value={editing.grade} onChange={e=>setEditing({...editing,grade:e.target.value})}/></label>
           <label>Specification<input value={editing.specification} onChange={e=>setEditing({...editing,specification:e.target.value})}/></label>
           <label>Quantity / Weight<input type="number" value={editing.quantity} onChange={e=>setEditing({...editing,quantity:e.target.value})}/></label>
