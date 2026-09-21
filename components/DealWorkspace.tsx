@@ -6,6 +6,8 @@ import { FileCheck2, PackageCheck, Truck, CreditCard, Pencil, Plus, RefreshCw } 
 export default function DealWorkspace({deal,payments,masters}:any){
   const [tab,setTab]=useState("overview");
   const [busy,setBusy]=useState(false);
+  const [editingCommercial,setEditingCommercial]=useState(false);
+  const [commercial,setCommercial]=useState({quantity:String(deal.quantity||""),buyRate:String(deal.buyRate||""),sellRate:String(deal.sellRate??""),freightCost:String(deal.freightCost||0),loadingCost:String(deal.loadingCost||0),otherCost:String(deal.otherCost||0)});
   const [message,setMessage]=useState("");
   const money=(n:any)=>"₹"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:0});
   const qty=Number(deal.quantity||0);
@@ -24,6 +26,53 @@ export default function DealWorkspace({deal,payments,masters}:any){
       setTimeout(()=>location.reload(),500);
     }catch(e:any){setMessage(e.message)}
     finally{setBusy(false)}
+  }
+
+  async function saveCommercial(){
+    setBusy(true); setMessage("");
+    try{
+      const response=await fetch("/api/deals",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        id:deal.id,
+        quantity:Number(commercial.quantity),
+        buyRate:Number(commercial.buyRate),
+        sellRate:commercial.sellRate===""?null:Number(commercial.sellRate),
+        freightCost:Number(commercial.freightCost||0),
+        loadingCost:Number(commercial.loadingCost||0),
+        otherCost:Number(commercial.otherCost||0)
+      })});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.detail||data.error||"Could not save commercial details.");
+      setEditingCommercial(false); setMessage("Commercial details updated."); setTimeout(()=>location.reload(),400);
+    }catch(e:any){setMessage(e.message)}finally{setBusy(false)}
+  }
+
+  async function createPayment(){
+    const amount=window.prompt("Payment amount");
+    if(amount===null) return;
+    const numeric=Number(amount);
+    if(!numeric || numeric<=0) return setMessage("Enter a valid payment amount.");
+    const type=window.prompt("Payment type: Receivable or Payable","Receivable")||"Receivable";
+    const reference=(type.toUpperCase().startsWith("PAY")?"PAY-":"REC-")+Date.now();
+    const purchaseId=deal.purchases[0]?.id;
+    const salesOrderId=deal.salesOrders[0]?.id;
+    await post("/api/records?module=payments",{
+      buyerId:deal.buyerId||null,
+      purchaseId: type.toLowerCase().startsWith("pay") ? purchaseId : null,
+      salesOrderId: type.toLowerCase().startsWith("pay") ? null : salesOrderId,
+      reference,type,amount:numeric,status:"Recorded",paidAt:new Date().toISOString()
+    });
+  }
+
+  async function dispatchLatestSale(){
+    const sale=deal.salesOrders[0];
+    if(!sale) return setMessage("Create a sales order first.");
+    setBusy(true); setMessage("");
+    try{
+      const response=await fetch("/api/records?module=sales",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:sale.id,status:"Dispatched",dispatchDate:new Date().toISOString()})});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Could not dispatch the sales order.");
+      setMessage("Sales order marked as dispatched."); setTimeout(()=>location.reload(),400);
+    }catch(e:any){setMessage(e.message)}finally{setBusy(false)}
   }
 
   const createAgreement=(side:"SELLER"|"BUYER")=>post("/api/agreements",{companyId:deal.companyId,dealId:deal.id,side,status:"Draft"});
@@ -58,7 +107,23 @@ export default function DealWorkspace({deal,payments,masters}:any){
         <div className="workspaceCard"><h3>Linked records</h3><Row label="Opportunity" value={deal.opportunity?.id?.slice(0,10)||"—"}/><Row label="Buyer demand" value={deal.demand?.id?.slice(0,10)||"—"}/><Row label="Purchases" value={deal.purchases.length}/><Row label="Sales orders" value={deal.salesOrders.length}/><Row label="Stock records" value={deal.stocks.length}/></div>
       </div>}
 
-      {tab==="commercial"&&<div className="workspaceGrid"><div className="workspaceCard"><h3>Cost build-up</h3><Row label="Material purchase" value={money(qty*Number(deal.buyRate))}/><Row label="Freight" value={money(deal.freightCost)}/><Row label="Loading" value={money(deal.loadingCost)}/><Row label="Other" value={money(deal.otherCost)}/><Row label="Expected landed cost" value={money(expectedCost)}/></div><div className="workspaceCard"><h3>Profitability</h3><Row label="Expected revenue" value={money(expectedRevenue)}/><Row label="Expected profit" value={money(expectedProfit)}/><Row label="Margin" value={deal.expectedMargin?Number(deal.expectedMargin).toFixed(2)+"%":"—"}/><Row label="Profit / KG" value={qty?money(expectedProfit/qty):"—"}/></div></div>}
+      {tab==="commercial"&&<div className="workspaceGrid">
+        <div className="workspaceCard">
+          <div className="cardTitleRow"><h3>Cost build-up</h3><button className="secondaryBtn" onClick={()=>setEditingCommercial(v=>!v)}><Pencil size={13}/>{editingCommercial?"Cancel":"Edit"}</button></div>
+          {editingCommercial ? <div className="workspaceEditGrid">
+            <label>Quantity<input type="number" value={commercial.quantity} onChange={e=>setCommercial({...commercial,quantity:e.target.value})}/></label>
+            <label>Buy rate<input type="number" value={commercial.buyRate} onChange={e=>setCommercial({...commercial,buyRate:e.target.value})}/></label>
+            <label>Sell rate<input type="number" value={commercial.sellRate} onChange={e=>setCommercial({...commercial,sellRate:e.target.value})} placeholder="Optional"/></label>
+            <label>Freight<input type="number" value={commercial.freightCost} onChange={e=>setCommercial({...commercial,freightCost:e.target.value})}/></label>
+            <label>Loading<input type="number" value={commercial.loadingCost} onChange={e=>setCommercial({...commercial,loadingCost:e.target.value})}/></label>
+            <label>Other cost<input type="number" value={commercial.otherCost} onChange={e=>setCommercial({...commercial,otherCost:e.target.value})}/></label>
+            <button className="saveBtn" onClick={saveCommercial} disabled={busy}>Save commercial details</button>
+          </div> : <>
+            <Row label="Material purchase" value={money(qty*Number(deal.buyRate))}/><Row label="Freight" value={money(deal.freightCost)}/><Row label="Loading" value={money(deal.loadingCost)}/><Row label="Other" value={money(deal.otherCost)}/><Row label="Expected landed cost" value={money(expectedCost)}/>
+          </>}
+        </div>
+        <div className="workspaceCard"><h3>Profitability</h3><Row label="Expected revenue" value={money(expectedRevenue)}/><Row label="Expected profit" value={money(expectedProfit)}/><Row label="Margin" value={deal.expectedMargin?Number(deal.expectedMargin).toFixed(2)+"%":"—"}/><Row label="Profit / KG" value={qty?money(expectedProfit/qty):"—"}/></div>
+      </div>}
 
       {tab==="agreements"&&<ActionSection title="Agreements" icon={<FileCheck2 size={16}/>} actions={<><button onClick={()=>createAgreement("SELLER")} disabled={busy}><Plus size={14}/> Seller Agreement</button><button onClick={()=>createAgreement("BUYER")} disabled={busy}><Plus size={14}/> Buyer Agreement</button></>}><DataTable rows={deal.agreements} cols={["side","status","version","validUntil"]}/></ActionSection>}
 
@@ -66,9 +131,9 @@ export default function DealWorkspace({deal,payments,masters}:any){
 
       {tab==="inventory"&&<ActionSection title="Inventory" icon={<PackageCheck size={16}/>}><DataTable rows={deal.stocks} cols={["warehouse","quantity","reservedQty","unitCost","status"]} nested/></ActionSection>}
 
-      {tab==="sales"&&<ActionSection title="Sales & dispatch" icon={<Truck size={16}/>} actions={<button onClick={createSale} disabled={busy}><Plus size={14}/> Create Sales Order</button>}><DataTable rows={deal.salesOrders} cols={["reference","quantity","rate","status","dispatchDate"]}/></ActionSection>}
+      {tab==="sales"&&<ActionSection title="Sales & dispatch" icon={<Truck size={16}/>} actions={<><button onClick={createSale} disabled={busy}><Plus size={14}/> Create Sales Order</button><button onClick={dispatchLatestSale} disabled={busy || !deal.salesOrders.length}><Truck size={14}/> Dispatch</button></>}><DataTable rows={deal.salesOrders} cols={["reference","quantity","rate","status","dispatchDate"]}/></ActionSection>}
 
-      {tab==="payments"&&<ActionSection title="Payments" icon={<CreditCard size={16}/>}><DataTable rows={payments} cols={["reference","type","amount","dueDate","status"]}/></ActionSection>}
+      {tab==="payments"&&<ActionSection title="Payments" icon={<CreditCard size={16}/>} actions={<button onClick={createPayment} disabled={busy}><Plus size={14}/> Record Payment</button>}><DataTable rows={payments} cols={["reference","type","amount","dueDate","status"]}/></ActionSection>}
 
       {tab==="activity"&&<ActionSection title="Deal activity"><div className="activityLine"><span>Deal created</span><small>{new Date(deal.createdAt).toLocaleString("en-IN")}</small></div><div className="activityLine"><span>Last updated</span><small>{new Date(deal.updatedAt).toLocaleString("en-IN")}</small></div></ActionSection>}
     </section>
