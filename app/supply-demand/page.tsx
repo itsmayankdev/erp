@@ -25,8 +25,8 @@ export default async function SupplyDemandPage(){
    desk={<SupplyDemandDesk initialSellers={safe(sellers)} initialBuyers={safe(buyers)} initialMaterials={safe(materials)}/>}
    sellerRows={safe(sellerRows)}
    buyerRows={safe(demands)}
-   sellerCount={sellers.length}
-   buyerCount={buyers.length}
+   sellerCount={sellerRows.length}
+   buyerCount={demands.length}
   />
  </main>;
 }
