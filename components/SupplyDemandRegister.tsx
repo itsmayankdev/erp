@@ -39,7 +39,9 @@ export default function SupplyDemandRegister({mode,rows}:Props){
     setDeleting(true);
     try{
       for(const id of ids){
-        const module = isSupply ? "sellers" : "buyer-demands";\n        const recordId = id;\n        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
+        const module = isSupply ? "sellers" : "buyer-demands";
+        const recordId = id;
+        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
         const data=await res.json();
         if(!res.ok)throw new Error(data.error||"Unable to delete record");
       }
@@ -68,7 +70,15 @@ export default function SupplyDemandRegister({mode,rows}:Props){
       <th>{isSupply?"Supplier":"Buyer"}</th><th>Contact</th><th>Material</th><th>Grade / Specification</th><th>Qty / Weight</th><th>{isSupply?"Buy Rate":"Target Rate"}</th>{isSupply&&<th>Market Rate</th>}<th>{isSupply?"Source Type":"Required By"}</th><th>Location</th><th>Status</th><th>Actions</th>
     </tr></thead><tbody>
       {filtered.map((r:any)=>{
-        const p=isSupply?r.seller:r.buyer; const supplies=isSupply?(r.supplies||[]):[r]; const expanded=open===r.id; const checked=selected.includes(r.id);\n        const materialNames=Array.from(new Set(supplies.map((s:any)=>s.material?.name).filter(Boolean)));\n        const grades=Array.from(new Set(supplies.map((s:any)=>s.material?.grade).filter(Boolean)));\n        const specs=Array.from(new Set(supplies.map((s:any)=>s.material?.specification).filter(Boolean)));\n        const totalQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.quantity)||0),0);\n        const rates=Array.from(new Set(supplies.map((s:any)=>s.askingRate).filter((v:any)=>v!=null)));\n        const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));\n        const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));\n        const rowStatuses=Array.from(new Set(supplies.map((s:any)=>s.status).filter(Boolean)));
+        const p=isSupply?r.seller:r.buyer; const supplies=isSupply?(r.supplies||[]):[r]; const expanded=open===r.id; const checked=selected.includes(r.id);
+        const materialNames=Array.from(new Set(supplies.map((s:any)=>s.material?.name).filter(Boolean)));
+        const grades=Array.from(new Set(supplies.map((s:any)=>s.material?.grade).filter(Boolean)));
+        const specs=Array.from(new Set(supplies.map((s:any)=>s.material?.specification).filter(Boolean)));
+        const totalQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.quantity)||0),0);
+        const rates=Array.from(new Set(supplies.map((s:any)=>s.askingRate).filter((v:any)=>v!=null)));
+        const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));
+        const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));
+        const rowStatuses=Array.from(new Set(supplies.map((s:any)=>s.status).filter(Boolean)));
         return <tr key={r.id} className={expanded?"expandedRow":""}>
           <td><button className="selectAllBtn" onClick={()=>toggle(r.id)}>{checked?<CheckSquare size={15}/>:<Square size={15}/>}</button></td>
           <td><b>{p?.name||"—"}</b><small>{p?.category||""}</small></td>
