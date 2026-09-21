@@ -64,7 +64,7 @@ export default async function Home() {
     receivables,
     payables,
     todayPurchases,
-    todaySales,
+    todaySalesAgg,
     priorityDeals
   ] = await Promise.all([
     prisma.deal.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
@@ -103,7 +103,7 @@ export default async function Home() {
     0
   );
   const todayPurchase = Number(todayPurchases._sum.quantity ?? 0) * Number(todayPurchases._sum.rate ?? 0);
-  const todaySales = Number(todaySales._sum.quantity ?? 0) * Number(todaySales._sum.rate ?? 0);
+  const todaySales = Number(todaySalesAgg._sum.quantity ?? 0) * Number(todaySalesAgg._sum.rate ?? 0);
   const todayProfit = todaySales - todayPurchase;
 
   return (
