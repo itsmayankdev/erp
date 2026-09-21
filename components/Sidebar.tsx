@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Building2, LayoutDashboard, PackageSearch, Search, Zap, BriefcaseBusiness, FileCheck2,
   ShoppingCart, Boxes, ReceiptText, Truck, Users, Warehouse, ClipboardList,
-  Factory, Layers3, CreditCard, FileText, BarChart3, ChevronLeft, ChevronRight
+  Factory, Layers3, CreditCard, FileText, BarChart3, History, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const nav = [
@@ -17,6 +17,7 @@ const nav = [
   ["/opportunities", "Opportunities", Zap],
   ["/buyer-demands", "Buyer Demands", ClipboardList],
   ["/deals", "Deals", BriefcaseBusiness],
+  ["/trade-history", "Trade History", History],
   ["/agreements", "Agreements", FileCheck2],
   ["/purchase", "Purchase", ShoppingCart],
   ["/inventory", "Inventory", Boxes],
