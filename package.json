@@ -1,1 +1,31 @@
-{"name":"erp","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"next lint"},"dependencies":{"next":"15.5.6","react":"19.1.1","react-dom":"19.1.1","lucide-react":"^0.468.0"},"devDependencies":{"@types/node":"^22.10.2","@types/react":"^19.0.3","@types/react-dom":"^19.0.2","typescript":"^5.7.2"}}
+{
+  "name": "erp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "next": "15.5.6",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "lucide-react": "^0.468.0",
+    "@prisma/client": "^6.16.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2",
+    "prisma": "^6.16.2",
+    "tsx": "^4.19.2"
+  }
+}
