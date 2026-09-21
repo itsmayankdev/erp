@@ -126,7 +126,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
             <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
             <td><b>{materialNames.length?materialNames.join(", "):"No supply recorded"}</b><small>{materialNames.length+" material"+(materialNames.length===1?"":"s")}</small></td>
             <td>{grades.length?grades.join(", "):"—"}<small>{specs.length?specs.join(" · "):"—"}</small></td>
-            <td><b>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</b>{isSupply&&committedQty>0&&<small>Pending stock · {qty(totalQty,supplies[0]?.unit||"KG")}</small>}</td>
+            <td><b>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</b>{isSupply&&committedQty>0&&<small>Allocated {qty(committedQty,supplies[0]?.unit||"KG")} of {qty(rawTotalQty,supplies[0]?.unit||"KG")}</small>}</td>
             <td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
             {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
             <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
