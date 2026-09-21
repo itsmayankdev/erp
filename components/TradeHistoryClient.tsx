@@ -12,6 +12,7 @@ export default function TradeHistoryClient({counterparties,deals}:any){
  const [role,setRole]=useState("all");
  const [q,setQ]=useState("");
  const [status,setStatus]=useState("");
+ const [expanded,setExpanded]=useState<string|null>(null);
  const selected=counterparties.find((x:any)=>x.id===companyId);
  const filtered=useMemo(()=>deals.filter((d:any)=>{
    if(companyId && d.counterpartyId!==companyId)return false;
