@@ -68,6 +68,32 @@ export async function POST(
         });
       }
 
+      const demandId = order.deal?.demandId ?? null;
+      if (demandId) {
+        const demand = await tx.buyerDemand.findUnique({ where: { id: demandId } });
+        if (demand) {
+          const nextFulfilled = Number(demand.fulfilledQuantity || 0) + Number(order.quantity);
+          const matched = Number(demand.matchedQuantity || 0);
+          const total = Number(demand.quantity);
+          await tx.buyerDemand.update({
+            where: { id: demand.id },
+            data: {
+              fulfilledQuantity: nextFulfilled,
+              status:
+                nextFulfilled >= total - 0.0001
+                  ? "Fulfilled"
+                  : nextFulfilled > 0
+                    ? "Partially Fulfilled"
+                    : matched >= total - 0.0001
+                      ? "Matched"
+                      : matched > 0
+                        ? "Partially Matched"
+                        : demand.status,
+            },
+          });
+        }
+      }
+
       return tx.salesOrder.update({
         where: { id },
         data: { status: "Dispatched", dispatchDate: new Date() },
