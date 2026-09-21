@@ -176,16 +176,17 @@ export async function POST(req: NextRequest) {
       }
 
       const nextMatched = Number(demand.matchedQuantity || 0) + requested;
+      const fulfilled = Number(demand.fulfilledQuantity || 0);
+      const nextStatus =
+        fulfilled >= Number(demand.quantity) - 0.0001
+          ? "Fulfilled"
+          : nextMatched >= Number(demand.quantity) - 0.0001
+            ? "Matched"
+            : "Partially Matched";
 
       await tx.buyerDemand.update({
         where: { id: demand.id },
-        data: {
-          matchedQuantity: nextMatched,
-          status:
-            nextMatched >= Number(demand.quantity) - 0.0001
-              ? "Matched"
-              : "Partially Matched",
-        },
+        data: { matchedQuantity: nextMatched, status: nextStatus },
       });
 
       return {
