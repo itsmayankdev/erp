@@ -58,7 +58,22 @@ export async function POST(req: NextRequest) {
       });
 
       await tx.opportunity.update({ where: { id: opportunity.id }, data: { status: "Converted" } });
-      if (demand) await tx.buyerDemand.update({ where: { id: demand.id }, data: { status: "Matched" } });
+      if (demand) {
+        const nextMatched = Number(demand.matchedQuantity || 0) + quantity;
+        const fulfilled = Number(demand.fulfilledQuantity || 0);
+        await tx.buyerDemand.update({
+          where: { id: demand.id },
+          data: {
+            matchedQuantity: nextMatched,
+            status:
+              fulfilled >= Number(demand.quantity) - 0.0001
+                ? "Fulfilled"
+                : nextMatched >= Number(demand.quantity) - 0.0001
+                  ? "Matched"
+                  : "Partially Matched",
+          },
+        });
+      }
 
       return deal;
     });
