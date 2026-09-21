@@ -57,7 +57,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     rows = await prisma.agreement.findMany({ where: { companyId: company.id }, include: { deal: true }, orderBy: { updatedAt: "desc" } });
     columns = ["Deal", "Side", "Version", "Status", "Valid Until"];
   } else if (module === "reports") {
-    return <main className="modulePage"><header className="moduleHeader"><div><p className="eyebrow">ERP REPORTS</p><h1>Reports</h1><p className="muted">Operational reporting is connected to the same PostgreSQL records.</p></div><Link className="secondaryBtn" href="/">← Dashboard</Link></header><section className="moduleCards"><div><b>Deals</b><strong>{await prisma.deal.count({where:{companyId:company.id}})}</strong><span>Total deal records</span></div><div><b>Inventory</b><strong>{await prisma.stock.count({where:{companyId:company.id}})}</strong><span>Stock records</span></div><div><b>Sales</b><strong>{await prisma.salesOrder.count({where:{companyId:company.id}})}</strong><span>Sales orders</span></div></section></main>;
+    return <main className="modulePage"><header className="moduleHeader"><div><p className="eyebrow">ERP REPORTS</p><h1>Reports</h1><p className="muted">Operational reporting is connected to the same PostgreSQL records.</p></div><Link className="secondaryBtn" href="/">Dashboard</Link></header><section className="moduleCards"><div><b>Deals</b><strong>{await prisma.deal.count({where:{companyId:company.id}})}</strong><span>Total deal records</span></div><div><b>Inventory</b><strong>{await prisma.stock.count({where:{companyId:company.id}})}</strong><span>Stock records</span></div><div><b>Sales</b><strong>{await prisma.salesOrder.count({where:{companyId:company.id}})}</strong><span>Sales orders</span></div></section></main>;
   } else {
     rows = await prisma.buyerDemand.findMany({ where: { companyId: company.id }, include: { buyer: true, material: true }, orderBy: { updatedAt: "desc" } });
     columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
@@ -69,7 +69,6 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
         <div><p className="eyebrow">ERP MODULE</p><h1>{title}</h1><p className="muted">{company.name} · {rows.length} records</p></div>
         <div className="moduleActions"><Link className="secondaryBtn" href="/">← Dashboard</Link>{module === "deals" && <Link className="primary" href="/deals?action=new">+ New Deal</Link>}</div>
       </header>
-      <div className="moduleNav">{Object.entries(modules).filter(([k])=>k!=="reports").map(([k,v])=><Link className={k===module?"selected":""} key={k} href={"/"+k}>{v}</Link>)}</div>
       <section className="modulePanel">
         <div className="panelHead"><div><h3>{title} records</h3><p>Live data from PostgreSQL</p></div></div>
         <div className="tableWrap"><table><thead><tr>{columns.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>
