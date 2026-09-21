@@ -19,6 +19,7 @@ model Company {
   deals           Deal[]
   warehouses      Warehouse[]
   stocks          Stock[]
+  stockAllocations StockAllocation[]
   users           User[]
   opportunities   Opportunity[]
   demands         BuyerDemand[]
@@ -109,6 +110,7 @@ model Warehouse {
   company   Company  @relation(fields: [companyId], references: [id])
   stocks    Stock[]
   purchases Purchase[]
+  stockAllocations StockAllocation[]
 }
 
 model Opportunity {
@@ -215,6 +217,7 @@ model Stock {
   company       Company    @relation(fields: [companyId], references: [id])
   material      Material   @relation(fields: [materialId], references: [id])
   deal          Deal?      @relation(fields: [dealId], references: [id])
+  stockAllocations StockAllocation[]
   createdAt     DateTime   @default(now())
 }
 
