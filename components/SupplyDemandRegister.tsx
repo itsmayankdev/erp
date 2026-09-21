@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Trash2, CheckSquare, Square } from "lucide-react";
 
 type Props = { mode: "suppliers" | "requirements"; rows: any[] };
@@ -11,6 +12,7 @@ const qty = (v:any,u?:string) => v == null ? "—" : Number(v).toLocaleString("e
 export default function SupplyDemandRegister({mode,rows}:Props){
   const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
   const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
+  const router=useRouter();
   const isSupply=mode==="suppliers";
 
   const materials=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
@@ -51,7 +53,9 @@ export default function SupplyDemandRegister({mode,rows}:Props){
         const data=await res.json();
         if(!res.ok)throw new Error(data.error||"Unable to delete record");
       }
-      location.reload();
+      setSelected([]);
+      setOpen(null);
+      router.refresh();
     }catch(e:any){alert(e.message);setDeleting(false)}
   }
 
