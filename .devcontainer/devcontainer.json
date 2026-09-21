@@ -1,0 +1,19 @@
+{
+  "name": "Steel Trading ERP",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [3000, 5432, 5555],
+  "portsAttributes": {
+    "3000": { "label": "ERP Web", "onAutoForward": "openBrowser" },
+    "5432": { "label": "PostgreSQL" },
+    "5555": { "label": "Prisma Studio" }
+  },
+  "postCreateCommand": "npm install && npx prisma generate",
+  "customizations": {
+    "vscode": {
+      "extensions": ["Prisma.prisma", "dbaeumer.vscode-eslint"]
+    }
+  }
+}
