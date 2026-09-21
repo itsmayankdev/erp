@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   const matches = opportunities.flatMap(op => demands
-    .filter(dm => dm.materialId === op.materialId && Number(op.quantity) >= Number(dm.quantity))
+    .filter(dm => dm.materialId === op.materialId && Math.max(0,Number(op.quantity)-Number(op.allocatedQuantity||0)) > 0 && Math.max(0,Number(dm.quantity)-Number(dm.matchedQuantity||0)) > 0)
     .map(dm => {
       const buy = Number(op.askingRate ?? 0);
       const sell = Number(dm.targetRate ?? op.estimatedMarketRate ?? 0);
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         material: op.material.name,
         seller: op.seller.name,
         buyer: dm.buyer.name,
-        quantity: Math.min(Number(op.quantity), Number(dm.quantity)),
+        quantity: Math.min(Math.max(0,Number(op.quantity)-Number(op.allocatedQuantity||0)), Math.max(0,Number(dm.quantity)-Number(dm.matchedQuantity||0)),
         buyRate: buy,
         targetSellRate: sell,
         spreadPerKg: spread,
