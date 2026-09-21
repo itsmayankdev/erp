@@ -33,8 +33,30 @@ async function main() {
     sellerMap[name] = row.id;
   }
 
-  const buyerNames = ["XYZ Industries","LMN Industries","Steel Consumer A","Buyer B"];
+  // Keep the buyer master aligned with the actual Buyers Data module.
+  // These two are the initial seeded buyers used for testing.
+  const buyerNames = ["XYZ Industries","LMN Industries"];
   const buyerMap: Record<string,string> = {};
+  // Remove legacy demo-only buyers and their test transactions.
+  // This keeps Market Network, Buyers Data, Smart Material Finder and Deals on the same master data.
+  for (const demoBuyer of ["Steel Consumer A", "Buyer B"]) {
+    const demo = await prisma.buyer.findFirst({ where: { companyId: company.id, name: demoBuyer } });
+    if (demo) {
+      const demoSales = await prisma.salesOrder.findMany({ where: { companyId: company.id, buyerId: demo.id }, select: { id: true } });
+      const demoDeals = await prisma.deal.findMany({ where: { companyId: company.id, buyerId: demo.id }, select: { id: true } });
+      const demoPurchases = await prisma.purchase.findMany({ where: { companyId: company.id, dealId: { in: demoDeals.map(d => d.id) } }, select: { id: true } });
+      await prisma.payment.deleteMany({ where: { companyId: company.id, buyerId: demo.id } });
+      await prisma.payment.deleteMany({ where: { companyId: company.id, salesOrderId: { in: demoSales.map(s => s.id) } } });
+      await prisma.payment.deleteMany({ where: { companyId: company.id, purchaseId: { in: demoPurchases.map(p => p.id) } } });
+      await prisma.salesOrder.deleteMany({ where: { companyId: company.id, buyerId: demo.id } });
+      await prisma.agreement.deleteMany({ where: { companyId: company.id, dealId: { in: demoDeals.map(d => d.id) } } });
+      await prisma.stock.deleteMany({ where: { companyId: company.id, dealId: { in: demoDeals.map(d => d.id) } } });
+      await prisma.purchase.deleteMany({ where: { companyId: company.id, dealId: { in: demoDeals.map(d => d.id) } } });
+      await prisma.deal.deleteMany({ where: { companyId: company.id, buyerId: demo.id } });
+      await prisma.buyerDemand.deleteMany({ where: { companyId: company.id, buyerId: demo.id } });
+      await prisma.buyer.delete({ where: { id: demo.id } });
+    }
+  }
   for (const name of buyerNames) {
     const b = await prisma.buyer.findFirst({ where: { companyId: company.id, name } });
     const row = b ?? await prisma.buyer.create({ data: { companyId: company.id, name, city: "Haryana" } });
