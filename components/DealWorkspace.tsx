@@ -129,7 +129,11 @@ export default function DealWorkspace({deal,payments,masters}:any){
 
       {tab==="purchase"&&<ActionSection title="Procurement" icon={<PackageCheck size={16}/>} actions={<button onClick={createPurchase} disabled={busy}><Plus size={14}/> Receive Purchase</button>}><DataTable rows={deal.purchases} cols={["reference","purchaseType","quantity","rate","status"]}/></ActionSection>}
 
-      {tab==="inventory"&&<ActionSection title="Inventory" icon={<PackageCheck size={16}/>}><DataTable rows={deal.stocks} cols={["warehouse","quantity","reservedQty","unitCost","status"]} nested/></ActionSection>}
+      {tab==="inventory"&&<>
+        {deal.dealSources?.length>0&&<ActionSection title="Supply sources" icon={<PackageCheck size={16}/>}><DataTable rows={deal.dealSources} cols={["seller","quantity","buyRate","location"]} nested/></ActionSection>}
+        <ActionSection title="Inventory" icon={<PackageCheck size={16}/>}><DataTable rows={deal.stocks} cols={["warehouse","quantity","reservedQty","unitCost","status"]} nested/></ActionSection>
+        <ActionSection title="Stock usage audit" icon={<PackageCheck size={16}/>}><DataTable rows={(deal.stocks||[]).flatMap((stock:any)=>(stock.stockAllocations||[]).map((a:any)=>({id:a.id,salesOrderId:a.salesOrderId,warehouse:stock.warehouse,quantity:a.quantity,status:a.status,allocatedAt:a.allocatedAt})))} cols={["salesOrderId","warehouse","quantity","status","allocatedAt"]}/></ActionSection>
+      </>}
 
       {tab==="sales"&&<ActionSection title="Sales & dispatch" icon={<Truck size={16}/>} actions={<><button onClick={createSale} disabled={busy}><Plus size={14}/> Create Sales Order</button><button onClick={dispatchLatestSale} disabled={busy || !deal.salesOrders.length}><Truck size={14}/> Dispatch</button></>}><DataTable rows={deal.salesOrders} cols={["reference","quantity","rate","status","dispatchDate"]}/></ActionSection>}
 
