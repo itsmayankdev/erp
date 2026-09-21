@@ -57,8 +57,8 @@ export default function SmartMaterialFinder({
     setQuery(
       [
         demand.material?.name,
-        demand.material?.grade,
-        demand.material?.specification,
+        demand.grade,
+        demand.specification,
         demand.notes,
       ]
         .filter(Boolean)
