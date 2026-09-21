@@ -14,7 +14,8 @@
     "dev:db": "docker compose up -d postgres && npm run db:generate && npm run dev",
     "setup": "npm install && docker compose up -d postgres && npm run db:generate",
     "db:reset": "prisma migrate reset",
-    "db:sync": "prisma db push && prisma generate"
+    "db:sync": "prisma db push && prisma generate",
+    "predev": "prisma db push && prisma generate"
   },
   "dependencies": {
     "next": "15.5.6",
