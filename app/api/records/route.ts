@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       prisma.warehouse.findMany({where:{companyId:company.id},select:{id:true,name:true}}),
       prisma.deal.findMany({where:{companyId:company.id},select:{id:true}})
     ]);
-    return NextResponse.json({sellers,buyers,materials,warehouses,deals});
+    return NextResponse.json({companyId:company.id,sellers,buyers,materials,warehouses,deals});
   }
   return NextResponse.json({error:"Unsupported module"},{status:400});
 }
