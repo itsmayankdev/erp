@@ -17,13 +17,19 @@ export default function SupplyDemandRegister({mode,rows}:Props){
   const parties=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.name:r.buyer?.name)).filter(Boolean))).sort(),[rows]);
   const cities=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.city:r.buyer?.city)||r.location).filter(Boolean))).sort(),[rows]);
   const types=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.sourceType):[r.sourceType]).filter(Boolean))).sort(),[rows,isSupply]);
+  const statuses=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.status):[r.status]).filter(Boolean))).sort(),[rows,isSupply]);
 
   const filtered=useMemo(()=>{
     const needle=q.trim().toLowerCase();
     return rows.filter(r=>{
       const p=isSupply?r.seller:r.buyer;
-      const hay=[p?.name,p?.phone,p?.email,p?.city,r.material?.name,r.material?.grade,r.material?.specification,r.location,r.notes,r.sourceType,r.status].join(" ").toLowerCase();
-      return (!needle||hay.includes(needle))&&(!material||r.material?.name===material)&&(!party||p?.name===party)&&(!city||((p?.city||r.location)===city))&&(!status||r.status===status)&&(!type||r.sourceType===type);
+      const nested=isSupply?(r.supplies||[]):[r];
+      const hay=[p?.name,p?.phone,p?.email,p?.city,r.location,r.notes,...nested.flatMap((s:any)=>[s.material?.name,s.material?.grade,s.material?.specification,s.location,s.notes,s.sourceType,s.status])].join(" ").toLowerCase();
+      const matchesMaterial=!material||nested.some((s:any)=>s.material?.name===material);
+      const matchesCity=!city||((p?.city||r.location)===city)||nested.some((s:any)=>(s.location||p?.city)===city);
+      const matchesStatus=!status||nested.some((s:any)=>s.status===status);
+      const matchesType=!type||nested.some((s:any)=>s.sourceType===type);
+      return (!needle||hay.includes(needle))&&matchesMaterial&&(!party||p?.name===party)&&matchesCity&&matchesStatus&&matchesType;
     });
   },[rows,q,material,party,city,status,type,isSupply]);
 
