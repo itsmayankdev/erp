@@ -9,7 +9,10 @@ const modelMap: Record<string,string> = {
   agreements:"agreement",
   purchase:"purchase",
   sales:"salesOrder",
-  deals:"deal"
+  deals:"deal",
+  "buyer-demands":"buyerDemand",
+  sellers:"seller",
+  materials:"material"
 };
 
 export async function GET(req: NextRequest) {
