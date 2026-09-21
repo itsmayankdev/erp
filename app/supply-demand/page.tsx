@@ -15,9 +15,9 @@ export default async function SupplyDemandPage(){
   prisma.buyerDemand.findMany({where:{companyId:company.id},include:{buyer:true,material:true},orderBy:{updatedAt:"desc"}})
  ]);
  const safe=(x:any)=>JSON.parse(JSON.stringify(x));
- const sellerRows=sellers.flatMap((seller:any)=>{
-  const own=opportunities.filter((o:any)=>o.sellerId===seller.id);
-  return own.length?own.map((o:any)=>({...o,seller})): [{id:"seller-"+seller.id,seller,material:null,quantity:null,unit:"KG",askingRate:null,estimatedMarketRate:null,sourceType:null,location:seller.city,status:"No active supply record",notes:null}];
+ const sellerRows=sellers.map((seller:any)=>{
+  const supplies=opportunities.filter((o:any)=>o.sellerId===seller.id);
+  return {id:seller.id,seller,supplies};
  });
  return <main className="modulePage">
   <header className="moduleHeader"><div><p className="eyebrow">TRADING CONTROL DESK</p><h1>Supply & Demand</h1><p className="muted">{company.name} · one centralized entry point for supply, sellers and buyer requirements.</p></div></header>
@@ -25,7 +25,7 @@ export default async function SupplyDemandPage(){
    desk={<SupplyDemandDesk initialSellers={safe(sellers)} initialBuyers={safe(buyers)} initialMaterials={safe(materials)}/>}
    sellerRows={safe(sellerRows)}
    buyerRows={safe(demands)}
-   sellerCount={sellerRows.length}
+   sellerCount={sellers.length}
    buyerCount={demands.length}
   />
  </main>;
