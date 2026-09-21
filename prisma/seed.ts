@@ -124,7 +124,7 @@ async function main() {
   if (!deal2) {
     deal2 = await prisma.deal.create({
       data: {
-        companyId: company.id, sellerId: sellerMap["PQR Engineering"], materialId: hrCoil, buyerId: buyerMap["Steel Consumer A"],
+        companyId: company.id, sellerId: sellerMap["PQR Engineering"], materialId: hrCoil, buyerId: buyerMap["XYZ Industries"],
         quantity: 40000, buyRate: 40, sellRate: 60, freightCost: 18000, loadingCost: 5000, otherCost: 2000,
         expectedLandedCost: 1625000, expectedProfit: 775000, expectedMargin: 0.4769,
         procurementType: "Surplus / Dead Stock", status: "In Execution", sellerCommitted: true, buyerCommitted: true,
@@ -155,7 +155,7 @@ async function main() {
   if (!sales) {
     sales = await prisma.salesOrder.create({
       data: {
-        companyId: company.id, dealId: deal2.id, buyerId: buyerMap["Steel Consumer A"], materialId: hrCoil,
+        companyId: company.id, dealId: deal2.id, buyerId: buyerMap["XYZ Industries"], materialId: hrCoil,
         reference: "SO-2026-0001", quantity: 25000, rate: 60, status: "Confirmed"
       }
     });
@@ -173,7 +173,7 @@ async function main() {
 
   const receivable = await prisma.payment.findUnique({ where: { reference: "REC-2026-0001" } });
   if (!receivable) await prisma.payment.create({
-    data: { companyId: company.id, buyerId: buyerMap["Steel Consumer A"], salesOrderId: sales?.id, reference: "REC-2026-0001", type: "Receivable", amount: 1500000, dueDate: new Date(Date.now() + 15 * 86400000), status: "Pending", notes: "Test outstanding buyer receivable" }
+    data: { companyId: company.id, buyerId: buyerMap["XYZ Industries"], salesOrderId: sales?.id, reference: "REC-2026-0001", type: "Receivable", amount: 1500000, dueDate: new Date(Date.now() + 15 * 86400000), status: "Pending", notes: "Test outstanding buyer receivable" }
   });
 
   const payable = await prisma.payment.findUnique({ where: { reference: "PAY-2026-0001" } });
