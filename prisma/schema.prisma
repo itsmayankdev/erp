@@ -13,6 +13,8 @@ model Company {
   deals Deal[]
   warehouses Warehouse[]
   users User[]
+  opportunities Opportunity[]
+  demands BuyerDemand[]
 }
 
 model User {
@@ -36,6 +38,7 @@ model Seller {
   createdAt DateTime @default(now())
   company Company @relation(fields:[companyId],references:[id])
   deals Deal[]
+  opportunities Opportunity[]
 }
 
 model Buyer {
@@ -48,6 +51,7 @@ model Buyer {
   createdAt DateTime @default(now())
   company Company @relation(fields:[companyId],references:[id])
   deals Deal[]
+  demands BuyerDemand[]
 }
 
 model Material {
@@ -61,6 +65,8 @@ model Material {
   company Company @relation(fields:[companyId],references:[id])
   deals Deal[]
   stocks Stock[]
+  opportunities Opportunity[]
+  demands BuyerDemand[]
 }
 
 model Warehouse {
@@ -71,6 +77,45 @@ model Warehouse {
   active Boolean @default(true)
   createdAt DateTime @default(now())
   company Company @relation(fields:[companyId],references:[id])
+}
+
+model Opportunity {
+  id String @id @default(cuid())
+  companyId String
+  sellerId String
+  materialId String
+  quantity Decimal
+  unit String @default("KG")
+  askingRate Decimal?
+  estimatedMarketRate Decimal?
+  sourceType String
+  status String
+  location String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id])
+  seller Seller @relation(fields:[sellerId],references:[id])
+  material Material @relation(fields:[materialId],references:[id])
+}
+
+model BuyerDemand {
+  id String @id @default(cuid())
+  companyId String
+  buyerId String
+  materialId String
+  quantity Decimal
+  unit String @default("KG")
+  targetRate Decimal?
+  requiredBy DateTime?
+  location String?
+  status String
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields:[companyId],references:[id])
+  buyer Buyer @relation(fields:[buyerId],references:[id])
+  material Material @relation(fields:[materialId],references:[id])
 }
 
 model Deal {
