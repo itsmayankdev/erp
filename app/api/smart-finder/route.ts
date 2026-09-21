@@ -27,7 +27,7 @@ export async function GET(req:NextRequest){
   for(const o of opportunities){
     const text=[o.material.name,o.material.grade,o.material.specification,o.notes,o.location].filter(Boolean).join(" ").toLowerCase();
     const materialMatch=!effectiveMaterialId||o.materialId===effectiveMaterialId;
-    const queryMatch=!q||text.includes(q)||q.split(/s+/).every(x=>text.includes(x));
+    const queryMatch=!q||text.includes(q)||q.split(/\\s+/).every(x=>text.includes(x));
     const locationMatch=!location||String(o.location||"").toLowerCase().includes(location);
     const qty=Number(o.quantity);
     const rate=o.askingRate?Number(o.askingRate):null;
@@ -42,11 +42,11 @@ export async function GET(req:NextRequest){
   for(const s of stocks){
     const text=[s.material.name,s.material.grade,s.material.specification,s.warehouse?.name,s.warehouse?.city].filter(Boolean).join(" ").toLowerCase();
     const materialMatch=!effectiveMaterialId||s.materialId===effectiveMaterialId;
-    const queryMatch=!q||q.split(/s+/).every(x=>text.includes(x));
+    const queryMatch=!q||q.split(/\\s+/).every(x=>text.includes(x));
     const locationMatch=!location||text.includes(location);
     const qty=Number(s.quantity)-Number(s.reservedQty);
     const rate=s.unitCost?Number(s.unitCost):null;
-    if(qty<=0||!materialMatch||!queryMatch||!locationMatch||(maxRate&&rate&&rate>maxRate))continue;
+    if(qty<=0||!materialMatch||!queryMatch||!locationMatch||(effectiveMaxRate&&rate&&rate>effectiveMaxRate))continue;
     let score=62;
     if(effectiveMaterialId)score+=18;
     if(effectiveQuantity&&qty>=effectiveQuantity)score+=12; else if(effectiveQuantity)score+=5;
