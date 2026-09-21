@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SupplyDemandRegister from "@/components/SupplyDemandRegister";
 
-export default function SupplyDemandSections({desk,sellerRows,buyerRows,sellerCount,buyerCount}:any){
+export default function SupplyDemandSections({desk,sellerRows,buyerRows,sellerCount,buyerCount,materials}:any){
  const [tab,setTab]=useState<"entry"|"sellers"|"buyers">("entry");
  return <div>
   <div className="sdTopTabs">
@@ -12,7 +12,7 @@ export default function SupplyDemandSections({desk,sellerRows,buyerRows,sellerCo
    <button className={tab==="buyers"?"active":""} onClick={()=>setTab("buyers")}><span>03</span> Buyers Data <b>{buyerCount}</b></button>
   </div>
   {tab==="entry"&&desk}
-  {tab==="sellers"&&<SupplyDemandRegister mode="suppliers" rows={sellerRows}/>}
-  {tab==="buyers"&&<SupplyDemandRegister mode="requirements" rows={buyerRows}/>}
+  {tab==="sellers"&&<SupplyDemandRegister mode="suppliers" rows={sellerRows} materials={materials}/>}
+  {tab==="buyers"&&<SupplyDemandRegister mode="requirements" rows={buyerRows} materials={materials}/>}
  </div>;
 }
