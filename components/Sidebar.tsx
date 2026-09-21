@@ -12,6 +12,8 @@ import {
 const nav = [
   ["/", "Overview", LayoutDashboard],
   ["/supply-demand", "Supply & Demand", PackageSearch],
+  ["/suppliers", "Suppliers Register", Factory],
+  ["/buyer-requirements", "Buyer Requirements", ClipboardList],
   ["/market-network", "Market Network", PackageSearch],
   ["/smart-finder", "Smart Material Finder", Search],
   ["/opportunities", "Opportunities", Zap],
