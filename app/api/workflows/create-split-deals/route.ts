@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
   const allocations: Array<{ opportunityId: string; quantity: number }> =
     Array.isArray(body.allocations) ? body.allocations : [];
 
-  if (!demandId || allocations.length < 2) {
+  if (!demandId || !allocations.length) {
     return NextResponse.json(
-      { error: "Select at least two supply sources for a combined deal." },
+      { error: "Buyer requirement and at least one supply source are required." },
       { status: 400 }
     );
   }
@@ -39,10 +39,6 @@ export async function POST(req: NextRequest) {
         .filter(a => a.opportunityId && a.quantity > 0);
 
       const requested = cleanAllocations.reduce((n, a) => n + a.quantity, 0);
-
-      if (cleanAllocations.length < 2) {
-        throw new Error("At least two valid supply sources are required.");
-      }
 
       if (requested > remainingDemand + 0.0001) {
         throw new Error(
