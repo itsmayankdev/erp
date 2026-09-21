@@ -11,6 +11,8 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
  const [newMaterial,setNewMaterial]=useState(false),[materialName,setMaterialName]=useState(""),[materialGrade,setMaterialGrade]=useState(""),[materialSpec,setMaterialSpec]=useState(""),[materialUnit,setMaterialUnit]=useState("KG");
  const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});
  const [saving,setSaving]=useState(false),[saved,setSaved]=useState("");
+ const [partySearch,setPartySearch]=useState(""),[materialSearch,setMaterialSearch]=useState("");
+ const [partyOpen,setPartyOpen]=useState(false),[materialOpen,setMaterialOpen]=useState(false);
 
  const selectedSeller=sellers.find((x:any)=>x.id===sellerId),selectedBuyer=buyers.find((x:any)=>x.id===buyerId),selectedMaterial=materials.find((x:any)=>x.id===materialId);
  const partyList=tab==="supply"?sellers:buyers;
@@ -19,8 +21,8 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(tab==="supply"){setSellerId(id);const x=sellers.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,location:f.location||x.city||""}));}
   else setBuyerId(id);
  }
- function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,unit:x.unit||"KG"}));}
- function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG"}));}
+ function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x){setMaterialSearch(x.name);setForm((f:any)=>({...f,unit:x.unit||"KG"}));}setMaterialOpen(false);}
+ function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialSearch("");setMaterialOpen(false);setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG"}));}
  async function addMaterial(){
   if(!materialName.trim())return;
   const r=await fetch("/api/records?module=materials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:materialName,grade:materialGrade,specification:materialSpec,unit:materialUnit||"KG"})});
@@ -57,7 +59,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
    <div className="sdForm">
     <div className="sdSection"><div className="sdSectionTitle"><b>{tab==="supply"?"Source / Company":"Buyer / Company"}</b><span>Select an existing company or choose Add new company in the same field.</span></div>
       <div className="sdGrid">
-       <label>{tab==="supply"?"Company / source":"Buyer / company"}{newPartyMode?<input autoFocus value={partyName} onChange={e=>setPartyName(e.target.value)} placeholder="Type new company name..."/>:<select value={tab==="supply"?sellerId:buyerId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewPartyMode(true);setNewParty(true);if(tab==="supply")setSellerId("");else setBuyerId("");}else chooseParty(v)}}><option value="">Select existing company...</option>{partyList.map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}<option value="__new__">＋ Add new company</option></select>}</label>
+       <label>{tab==="supply"?"Company / source":"Buyer / company"}{newPartyMode?<input autoFocus value={partyName} onChange={e=>setPartyName(e.target.value)} placeholder="Type new company name..."/>:<select value={tab==="supply"?sellerId:buyerId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewPartyMode(true);setNewParty(true);if(tab==="supply")setSellerId("");else setBuyerId("");setPartySearch("");setPartyOpen(false);}else chooseParty(v)}}><option value="">Select existing company...</option>{partyList.map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}<option value="__new__">＋ Add new company</option></select>}</label>
        <label>Phone<input value={newPartyMode?partyPhone:((tab==="supply"?selectedSeller?.phone:selectedBuyer?.phone)||"")} onChange={e=>newPartyMode&&setPartyPhone(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"Phone":"Auto-filled from company"}/></label>
        <label>Email<input value={newPartyMode?partyEmail:((tab==="supply"?selectedSeller?.email:selectedBuyer?.email)||"")} onChange={e=>newPartyMode&&setPartyEmail(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"Email":"Auto-filled from company"}/></label>
        <label>City / location<input value={newPartyMode?partyCity:((tab==="supply"?selectedSeller?.city:selectedBuyer?.city)||"")} onChange={e=>newPartyMode&&setPartyCity(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"City":"Auto-filled from company"}/></label>
@@ -66,7 +68,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>Material details</b><span>Existing master data auto-fills the known specification.</span></div>
       <div className="sdGrid">
-       <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){startNewMaterial();}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select>}</label>
+       <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<div className="smartSelect"><input value={materialSearch} onFocus={()=>setMaterialOpen(true)} onChange={e=>{setMaterialSearch(e.target.value);setMaterialOpen(true);}} placeholder="Type to search material..." />{materialOpen&&<div className="smartOptions">{materials.filter((x:any)=>`${x.name} ${x.grade||""} ${x.specification||""}`.toLowerCase().includes(materialSearch.toLowerCase())).slice(0,30).map((x:any)=><button type="button" key={x.id} onMouseDown={e=>e.preventDefault()} onClick={()=>chooseMaterial(x.id)}><b>{x.name}</b><small>{[x.grade,x.specification].filter(Boolean).join(" · ")||x.unit||"KG"}</small></button>)}<button type="button" className="smartAdd" onMouseDown={e=>e.preventDefault()} onClick={startNewMaterial}><Plus size={12}/> Add new material</button>{!materials.some((x:any)=>`${x.name} ${x.grade||""} ${x.specification||""}`.toLowerCase().includes(materialSearch.toLowerCase()))&&<span className="smartEmpty">No matching material</span>}</div>}</div>}</label>
        <label>Grade<input value={newMaterial?materialGrade:(selectedMaterial?.grade||"")} readOnly={!newMaterial} onChange={e=>newMaterial&&setMaterialGrade(e.target.value)} placeholder={newMaterial?"e.g. IS 513":"Auto-filled"}/></label>
        <label>Specification<input value={newMaterial?materialSpec:(selectedMaterial?.specification||"")} readOnly={!newMaterial} onChange={e=>newMaterial&&setMaterialSpec(e.target.value)} placeholder={newMaterial?"e.g. 0.8mm x 1250mm":"Auto-filled"}/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
