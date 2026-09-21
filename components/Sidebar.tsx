@@ -4,14 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Building2, LayoutDashboard, PackageSearch, Zap, BriefcaseBusiness, FileCheck2,
+  Building2, LayoutDashboard, PackageSearch, Search, Zap, BriefcaseBusiness, FileCheck2,
   ShoppingCart, Boxes, ReceiptText, Truck, Users, Warehouse, ClipboardList,
   Factory, Layers3, CreditCard, FileText, BarChart3, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const nav = [
   ["/", "Overview", LayoutDashboard],
-  ["/market-intelligence", "Market Intelligence", PackageSearch],
+  ["/market-network", "Market Network", PackageSearch],
+  ["/smart-finder", "Smart Material Finder", Search],
   ["/opportunities", "Opportunities", Zap],
   ["/buyer-demands", "Buyer Demands", ClipboardList],
   ["/deals", "Deals", BriefcaseBusiness],
