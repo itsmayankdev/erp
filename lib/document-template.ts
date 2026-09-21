@@ -8,24 +8,66 @@ const money=(n:number)=>"₹"+n.toLocaleString("en-IN",{minimumFractionDigits:2,
 const safe=(v:any)=>v===undefined||v===null||v===""?"—":String(v);
 const address=(c:any)=>[c.address,c.city,c.state,c.pincode].filter(Boolean).join(", ")||"Company address not configured";
 export function buildSvg(d:DocumentData){
-  const esc=(v:any)=>safe(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const rows=d.item.map((x,i)=>"<tr><td>"+(i+1)+"</td><td><b>"+esc(x.name)+"</b><br><span>"+esc([x.code,x.grade,x.specification].filter(Boolean).join(" · "))+"</span></td><td>"+x.quantity.toLocaleString("en-IN")+"</td><td>"+esc(x.unit)+"</td><td>"+money(x.rate)+"</td><td>"+x.discount+"%</td><td>"+money(x.quantity*x.rate*(1-x.discount/100))+"</td></tr>").join("");
-  const logo=d.company.logoUrl ? "<image href=\""+esc(d.company.logoUrl)+"\" x=\"55\" y=\"42\" width=\"80\" height=\"38\" preserveAspectRatio=\"xMidYMid meet\"/>" : "";
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><rect width="794" height="1123" fill="white"/><rect x="32" y="32" width="730" height="1059" fill="none" stroke="#d9e0e8"/>'+
-    logo+
-    '<text x="145" y="72" font-family="Arial" font-size="20" font-weight="700" fill="#172a42">'+esc(d.company.name)+'</text>'+
-    '<text x="55" y="94" font-family="Arial" font-size="9" fill="#64748b">'+esc(address(d.company))+'</text>'+
-    '<text x="735" y="76" text-anchor="end" font-family="Arial" font-size="18" font-weight="700" fill="#1f5fc9">'+titleFor(d.type)+'</text>'+
-    '<text x="735" y="96" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">No. '+esc(d.number)+'</text><text x="735" y="112" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">Date: '+d.date.toLocaleDateString("en-IN")+'</text>'+
-    '<line x1="55" y1="130" x2="739" y2="130" stroke="#d9e0e8"/><rect x="55" y="150" width="330" height="86" rx="6" fill="#f6f8fb"/>'+
-    '<text x="70" y="172" font-family="Arial" font-size="9" font-weight="700" fill="#64748b">PARTY</text><text x="70" y="194" font-family="Arial" font-size="13" font-weight="700" fill="#172a42">'+esc(d.party?.name)+'</text>'+
-    '<foreignObject x="55" y="255" width="684" height="390"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial;font-size:9px"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#172a42;color:#fff"><th>#</th><th style="text-align:left">Item</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Disc.</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table></div></foreignObject>'+
-    '<text x="500" y="700" font-family="Arial" font-size="10" fill="#64748b">Subtotal</text><text x="735" y="700" text-anchor="end" font-family="Arial" font-size="10">'+money(d.subtotal)+'</text>'+
-    '<text x="500" y="722" font-family="Arial" font-size="10" fill="#64748b">Discount</text><text x="735" y="722" text-anchor="end" font-family="Arial" font-size="10">-'+money(d.discount)+'</text>'+
-    '<text x="500" y="744" font-family="Arial" font-size="10" fill="#64748b">Tax</text><text x="735" y="744" text-anchor="end" font-family="Arial" font-size="10">'+money(d.tax)+'</text>'+
-    '<rect x="475" y="760" width="264" height="42" rx="5" fill="#eef5ff"/><text x="490" y="786" font-family="Arial" font-size="11" font-weight="700">TOTAL</text><text x="725" y="786" text-anchor="end" font-family="Arial" font-size="15" font-weight="700" fill="#1f5fc9">'+money(d.total)+'</text>'+
-    '<text x="55" y="700" font-family="Arial" font-size="9" font-weight="700" fill="#64748b">TERMS &amp; NOTES</text><text x="55" y="720" font-family="Arial" font-size="9" fill="#475569">'+esc(d.terms||d.notes||"")+'</text>'+
-    '<line x1="55" y1="930" x2="300" y2="930" stroke="#94a3b8"/><text x="55" y="948" font-family="Arial" font-size="9" fill="#64748b">Authorized Signatory</text></svg>';
+  const esc=(v:any)=>safe(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const text=(x:number,y:number,value:any,size=10,weight="400",fill="#172a42",anchor="start") =>
+    `<text x="${x}" y="${y}" font-family="Arial,Helvetica,sans-serif" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}">${esc(value)}</text>`;
+  const logo=d.company.logoUrl
+    ? `<image href="${esc(d.company.logoUrl)}" x="55" y="42" width="80" height="38" preserveAspectRatio="xMidYMid meet"/>`
+    : "";
+  const itemRows=d.item.map((x,i)=>{
+    const y=315+i*34;
+    const amount=x.quantity*x.rate*(1-(Number(x.discount)||0)/100);
+    return `<line x1="55" y1="${y+14}" x2="739" y2="${y+14}" stroke="#e3e8ef"/>
+      ${text(60,y,i+1,9)}
+      ${text(82,y,x.name,9,"700")}
+      ${text(82,y+14,[x.code,x.grade,x.specification].filter(Boolean).join(" · "),7,"400","#64748b")}
+      ${text(390,y,x.quantity.toLocaleString("en-IN"),9,"400","#172a42","end")}
+      ${text(440,y,x.unit,9)}
+      ${text(535,y,money(x.rate),9,"400","#172a42","end")}
+      ${text(585,y,(Number(x.discount)||0)+"%",9,"400","#172a42","end")}
+      ${text(735,y,money(amount),9,"700","#172a42","end")}`;
+  }).join("");
+  const startY=315;
+  const totalsY=Math.max(startY+d.item.length*34+35,520);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123">
+    <rect width="794" height="1123" fill="#ffffff"/>
+    <rect x="32" y="32" width="730" height="1059" fill="none" stroke="#d9e0e8"/>
+    ${logo}
+    ${text(d.company.logoUrl?145:55,72,d.company.name,20,"700","#172a42")}
+    ${text(55,94,address(d.company),9,"400","#64748b")}
+    ${text(735,76,titleFor(d.type),18,"700","#1f5fc9","end")}
+    ${text(735,96,"No. "+d.number,10,"400","#475569","end")}
+    ${text(735,112,"Date: "+d.date.toLocaleDateString("en-IN"),10,"400","#475569","end")}
+    <line x1="55" y1="130" x2="739" y2="130" stroke="#d9e0e8"/>
+    <rect x="55" y="150" width="330" height="86" rx="6" fill="#f6f8fb"/>
+    ${text(70,172,"PARTY",9,"700","#64748b")}
+    ${text(70,194,d.party?.name,13,"700","#172a42")}
+    ${text(70,214,address(d.party||{}),8,"400","#64748b")}
+    <rect x="55" y="270" width="684" height="32" rx="4" fill="#172a42"/>
+    ${text(60,291,"#",9,"700","#ffffff")}
+    ${text(82,291,"ITEM",9,"700","#ffffff")}
+    ${text(390,291,"QTY",9,"700","#ffffff","end")}
+    ${text(440,291,"UNIT",9,"700","#ffffff")}
+    ${text(535,291,"RATE",9,"700","#ffffff","end")}
+    ${text(585,291,"DISC.",9,"700","#ffffff","end")}
+    ${text(735,291,"AMOUNT",9,"700","#ffffff","end")}
+    ${itemRows}
+    <line x1="475" y1="${totalsY-18}" x2="739" y2="${totalsY-18}" stroke="#d9e0e8"/>
+    ${text(500,totalsY,"Subtotal",10,"400","#64748b")}
+    ${text(735,totalsY,money(d.subtotal),10,"400","#172a42","end")}
+    ${text(500,totalsY+22,"Discount",10,"400","#64748b")}
+    ${text(735,totalsY+22,"-"+money(d.discount),10,"400","#172a42","end")}
+    ${text(500,totalsY+44,"Tax",10,"400","#64748b")}
+    ${text(735,totalsY+44,money(d.tax),10,"400","#172a42","end")}
+    <rect x="475" y="${totalsY+60}" width="264" height="44" rx="5" fill="#eef5ff"/>
+    ${text(490,totalsY+88,"TOTAL",11,"700","#172a42")}
+    ${text(725,totalsY+88,money(d.total),15,"700","#1f5fc9","end")}
+    ${text(55,totalsY+15,"TERMS & NOTES",9,"700","#64748b")}
+    ${text(55,totalsY+37,d.terms||d.notes||"",9,"400","#475569")}
+    ${text(55,1020,"Authorized Signatory",9,"400","#64748b")}
+    <line x1="55" y1="1005" x2="300" y2="1005" stroke="#94a3b8"/>
+    ${text(735,1065,"Generated by Steel Trading ERP",7,"400","#94a3b8","end")}
+  </svg>`;
 }
 export async function buildPdf(d:DocumentData){
  const pdf=await PDFDocument.create(); const page=pdf.addPage([595,842]); const font=await pdf.embedFont(StandardFonts.Helvetica); const bold=await pdf.embedFont(StandardFonts.HelveticaBold);
