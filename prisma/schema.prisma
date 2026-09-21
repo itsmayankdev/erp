@@ -161,6 +161,7 @@ model BuyerDemand {
   specification String?
   quantity    Decimal   @db.Decimal(18,3)
   matchedQuantity Decimal @default(0) @db.Decimal(18,3)
+  fulfilledQuantity Decimal @default(0) @db.Decimal(18,3)
   unit        String    @default("KG")
   targetRate  Decimal?  @db.Decimal(18,4)
   requiredBy  DateTime?
