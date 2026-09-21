@@ -54,9 +54,9 @@ async function main() {
     data: { companyId: company.id, buyerId: buyerMap["XYZ Industries"], materialId: materialMap["MAT-001"], quantity: 20000, unit: "KG", targetRate: 50, status: "Urgent", location: "Panipat" }
   });
 
-  const deal = await prisma.deal.findFirst({ where: { companyId: company.id, opportunityId: op.id, demandId: dm.id } });
+  let deal = await prisma.deal.findFirst({ where: { companyId: company.id, opportunityId: op.id, demandId: dm.id } });
   if (!deal) {
-    await prisma.deal.create({
+    deal = await prisma.deal.create({
       data: {
         companyId: company.id, opportunityId: op.id, demandId: dm.id,
         sellerId: sellerMap["ABC Steel Ltd."], buyerId: buyerMap["XYZ Industries"], materialId: materialMap["MAT-001"],
