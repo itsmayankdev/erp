@@ -39,7 +39,7 @@ export default function SupplyDemandRegister({mode,rows}:Props){
     setDeleting(true);
     try{
       for(const id of ids){
-        const res=await fetch("/api/records?module="+(isSupply?"opportunities":"buyer-demands"),{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+        // Supplier rows without an opportunity use a synthetic "seller-" id.\n        // Delete the actual supplier master in that case; otherwise delete the supply record.\n        const isSupplierMasterRow = isSupply && id.startsWith("seller-");\n        const module = isSupplierMasterRow ? "sellers" : (isSupply ? "opportunities" : "buyer-demands");\n        const recordId = isSupplierMasterRow ? id.slice("seller-".length) : id;\n        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
         const data=await res.json();
         if(!res.ok)throw new Error(data.error||"Unable to delete record");
       }
