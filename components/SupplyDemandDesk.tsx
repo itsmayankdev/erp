@@ -19,7 +19,8 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(tab==="supply"){setSellerId(id);const x=sellers.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,location:f.location||x.city||""}));}
   else setBuyerId(id);
  }
- function chooseMaterial(id:string){setMaterialId(id);const x=materials.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,unit:x.unit||"KG"}));}
+ function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,unit:x.unit||"KG"}));}
+ function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG"}));}
  async function addMaterial(){
   if(!materialName.trim())return;
   const r=await fetch("/api/records?module=materials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:materialName,grade:materialGrade,specification:materialSpec,unit:materialUnit||"KG"})});
@@ -65,11 +66,13 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>Material details</b><span>Existing master data auto-fills the known specification.</span></div>
       <div className="sdGrid">
-       <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewMaterial(true);setMaterialId("");}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select>}</label>
-       <label>Grade<input value={selectedMaterial?.grade||""} readOnly placeholder="Auto-filled"/></label>
-       <label>Specification<input value={selectedMaterial?.specification||""} readOnly placeholder="Auto-filled"/></label>
+       <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){startNewMaterial();}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select>}</label>
+       <label>Grade<input value={newMaterial?materialGrade:(selectedMaterial?.grade||"")} readOnly={!newMaterial} onChange={e=>newMaterial&&setMaterialGrade(e.target.value)} placeholder={newMaterial?"e.g. IS 513":"Auto-filled"}/></label>
+       <label>Specification<input value={newMaterial?materialSpec:(selectedMaterial?.specification||"")} readOnly={!newMaterial} onChange={e=>newMaterial&&setMaterialSpec(e.target.value)} placeholder={newMaterial?"e.g. 0.8mm x 1250mm":"Auto-filled"}/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
       </div>
+    </div>
+      {newMaterial&&<div className="inlineActions materialActions"><button onClick={()=>setNewMaterial(false)}>Cancel</button><button className="saveBtn" onClick={addMaterial} disabled={!materialName.trim()}><Plus size={13}/> Save material</button></div>}
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>{tab==="supply"?"Availability & commercial details":"Requirement & commercial details"}</b></div>
       <div className="sdGrid">
@@ -79,7 +82,6 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
        <label className="wide">Notes / size / thickness / width / length<input value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Store any commercial or specification detail here"/></label>
       </div>
     </div>
-    {newParty&&<div className="inlineParty"><div><b>New company</b><small>Create it once. It will be available for future records and auto-fill its details.</small></div><div className="sdGrid"><label>Company name<input value={partyName} onChange={e=>setPartyName(e.target.value)} autoFocus/></label><label>Phone<input value={partyPhone} onChange={e=>setPartyPhone(e.target.value)}/></label><label>Email<input value={partyEmail} onChange={e=>setPartyEmail(e.target.value)}/></label><label>City<input value={partyCity} onChange={e=>setPartyCity(e.target.value)}/></label></div><div className="inlineActions"><button onClick={()=>setNewParty(false)}>Cancel</button><button className="saveBtn" onClick={addParty}><Plus size={13}/> Save company</button></div></div>}
     <div className="sdFooter">{saved?<span className="saved"><CheckCircle2 size={14}/>{saved}</span>:<span>All saved company and material details become reusable master data.</span>}<button className="saveBtn" onClick={save} disabled={saving}>{saving?"Saving...":tab==="supply"?"Save Supply Record":"Save Buyer Requirement"}</button></div>
    </div>
   </section>
