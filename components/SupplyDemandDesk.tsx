@@ -71,7 +71,6 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
        <label>Specification<input value={newMaterial?materialSpec:(selectedMaterial?.specification||"")} readOnly={!newMaterial} onChange={e=>newMaterial&&setMaterialSpec(e.target.value)} placeholder={newMaterial?"e.g. 0.8mm x 1250mm":"Auto-filled"}/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
       </div>
-    </div>
       {newMaterial&&<div className="inlineActions materialActions"><button onClick={()=>setNewMaterial(false)}>Cancel</button><button className="saveBtn" onClick={addMaterial} disabled={!materialName.trim()}><Plus size={13}/> Save material</button></div>}
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>{tab==="supply"?"Availability & commercial details":"Requirement & commercial details"}</b></div>
