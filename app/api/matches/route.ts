@@ -30,11 +30,11 @@ export async function GET(req: NextRequest) {
         material: op.material.name,
         seller: op.seller.name,
         buyer: dm.buyer.name,
-        quantity: Math.min(Math.max(0,Number(op.quantity)-Number(op.allocatedQuantity||0)), Math.max(0,Number(dm.quantity)-Number(dm.matchedQuantity||0)),
+        quantity: Math.min(Math.max(0,Number(op.quantity)-Number(op.allocatedQuantity||0)), Math.max(0,Number(dm.quantity)-Number(dm.matchedQuantity||0))),
         buyRate: buy,
         targetSellRate: sell,
         spreadPerKg: spread,
-        estimatedGrossSpread: spread * Math.min(Number(op.quantity), Number(dm.quantity)),
+        estimatedGrossSpread: spread * Math.min(Math.max(0,Number(op.quantity)-Number(op.allocatedQuantity||0)), Math.max(0,Number(dm.quantity)-Number(dm.matchedQuantity||0))),
         signal: spread > 0 ? "MATCH" : "REVIEW"
       };
     }));
