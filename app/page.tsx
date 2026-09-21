@@ -121,7 +121,7 @@ export default async function Home() {
               <Icon size={18} />
               <span>{label}</span>
               {label === "Deals" && <b>{openDeals}</b>}
-            </div>
+            </Link>
           ))}
         </nav>
 
