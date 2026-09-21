@@ -9,7 +9,9 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
  const [newParty,setNewParty]=useState(false),[partyName,setPartyName]=useState(""),[partyPhone,setPartyPhone]=useState(""),[partyEmail,setPartyEmail]=useState(""),[partyCity,setPartyCity]=useState("");
  const [newPartyMode,setNewPartyMode]=useState(false);
  const [newMaterial,setNewMaterial]=useState(false),[materialName,setMaterialName]=useState(""),[materialGrade,setMaterialGrade]=useState(""),[materialSpec,setMaterialSpec]=useState(""),[materialUnit,setMaterialUnit]=useState("KG");
- const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});\n const [gradeValue,setGradeValue]=useState("");\n const [specValue,setSpecValue]=useState("");
+ const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});
+ const [gradeValue,setGradeValue]=useState("");
+ const [specValue,setSpecValue]=useState("");
  const [saving,setSaving]=useState(false),[saved,setSaved]=useState("");
  const [partySearch,setPartySearch]=useState(""),[materialSearch,setMaterialSearch]=useState("");
  const [partyOpen,setPartyOpen]=useState(false),[materialOpen,setMaterialOpen]=useState(false);
@@ -21,7 +23,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(tab==="supply"){setSellerId(id);const x=sellers.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,location:f.location||x.city||""}));}
   else setBuyerId(id);
  }
- function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x){setMaterialSearch(x.name);setForm((f:any)=>({...f,unit:x.unit||"KG"}));setGradeValue(x.grade||"");setSpecValue(x.specification||"");setGradeValue(x.grade||"");setSpecValue(x.specification||"");}setMaterialOpen(false);}
+ function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x){setMaterialSearch(x.name);setForm((f:any)=>({...f,unit:x.unit||"KG"}));setGradeValue(x.grade||"");setSpecValue(x.specification||"");}setMaterialOpen(false);}
  function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialSearch("");setMaterialOpen(false);setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG"}));setGradeValue("");setSpecValue("");}
  async function addMaterial(){
   if(!materialName.trim())return;
@@ -47,7 +49,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   setSaving(true);
   const body=tab==="supply"
    ?{sellerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:gradeValue||null,specification:specValue||null,askingRate:form.askingRate?Number(form.askingRate):null,estimatedMarketRate:form.marketRate?Number(form.marketRate):null,sourceType:form.sourceType,status:form.status,location:form.location,notes:form.notes}
-   :{buyerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:form.grade||null,specification:form.specification||null,targetRate:form.targetRate?Number(form.targetRate):null,requiredBy:form.requiredBy||null,location:form.location,status:form.status,notes:form.notes};
+   :{buyerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:gradeValue||null,specification:specValue||null,targetRate:form.targetRate?Number(form.targetRate):null,requiredBy:form.requiredBy||null,location:form.location,status:form.status,notes:form.notes};
   const r=await fetch("/api/records?module="+(tab==="supply"?"opportunities":"buyer-demands"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok){alert((await r.json()).error||"Unable to save");setSaving(false);return;}
   setSaved(tab==="supply"?"Supply record saved":"Buyer requirement saved");setSaving(false);setTimeout(()=>location.reload(),700);
