@@ -15,6 +15,7 @@ import {
   Warehouse,
   Zap
 } from "lucide-react";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -116,7 +117,7 @@ export default async function Home() {
 
         <nav>
           {nav.map(([label, Icon], i) => (
-            <div key={label} className={"navItem " + (i === 0 ? "active" : "")}>
+            <Link href={label === "Overview" ? "/" : "/" + label.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")} key={label} className={"navItem " + (i === 0 ? "active" : "")}>
               <Icon size={18} />
               <span>{label}</span>
               {label === "Deals" && <b>{openDeals}</b>}
@@ -150,7 +151,7 @@ export default async function Home() {
             <h2>One view of every deal, material & rupee.</h2>
             <p>Track sourcing, commitments, inventory, sales and profitability from the centralized PostgreSQL database.</p>
           </div>
-          <button className="primary">+ New Deal</button>
+          <Link className="primary" href="/deals?action=new">+ New Deal</Link>
         </div>
 
         <section className="metrics">
@@ -172,7 +173,7 @@ export default async function Home() {
           <section className="panel">
             <div className="panelHead">
               <div><h3>Today’s trading</h3><p>Calculated from today's purchase and sales records</p></div>
-              <button className="link">View reports <ArrowUpRight size={15} /></button>
+              <Link className="link" href="/reports">View reports <ArrowUpRight size={15} /></Link>
             </div>
             <div className="trading">
               <div><span>Purchase</span><strong>{money(todayPurchase)}</strong><em>Today</em></div>
@@ -196,7 +197,7 @@ export default async function Home() {
         <section className="panel">
           <div className="panelHead">
             <div><h3>Priority deals</h3><p>Live records directly from PostgreSQL.</p></div>
-            <button className="link">All deals <ArrowUpRight size={15} /></button>
+            <Link className="link" href="/deals">All deals <ArrowUpRight size={15} /></Link>
           </div>
           <div className="tableWrap">
             <table>
