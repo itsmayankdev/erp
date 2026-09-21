@@ -81,6 +81,25 @@ export default function DealWorkspace({deal,payments,masters}:any){
     if(!warehouse) return setMessage("Create a warehouse first.");
     post("/api/purchases",{companyId:deal.companyId,dealId:deal.id,sellerId:deal.sellerId,materialId:deal.materialId,warehouseId:warehouse.id,reference:"PUR-"+Date.now(),purchaseType:deal.procurementType,quantity:qty,rate:Number(deal.buyRate),freightCost:Number(deal.freightCost||0),loadingCost:Number(deal.loadingCost||0),otherCost:Number(deal.otherCost||0),status:"Received"});
   };
+
+  const receiveSource=async(source:any)=>{
+    const warehouse=masters.warehouses[0];
+    if(!warehouse) return setMessage("Create a warehouse first.");
+    const received=(deal.purchases||[]).filter((p:any)=>p.dealSourceId===source.id&&p.status==="Received").reduce((sum:number,p:any)=>sum+Number(p.quantity||0),0);
+    const remaining=Math.max(0,Number(source.quantity)-received);
+    if(remaining<=0) return setMessage("This supply source is fully received.");
+    const entered=window.prompt("Receive quantity from "+(source.seller?.name||"supplier")+" (remaining "+remaining.toLocaleString("en-IN")+" "+deal.material.unit+")",String(remaining));
+    if(entered===null) return;
+    const quantity=Number(entered);
+    if(!quantity||quantity<=0||quantity>remaining) return setMessage("Enter a quantity between 1 and "+remaining.toLocaleString("en-IN")+".");
+    await post("/api/purchases",{
+      companyId:deal.companyId,dealId:deal.id,dealSourceId:source.id,
+      sellerId:source.sellerId,materialId:deal.materialId,warehouseId:warehouse.id,
+      reference:"PUR-"+Date.now(),purchaseType:deal.procurementType,quantity,
+      rate:Number(source.buyRate),freightCost:Number(deal.freightCost||0),
+      loadingCost:Number(deal.loadingCost||0),otherCost:Number(deal.otherCost||0),status:"Received"
+    });
+  };
   const createSale=()=>{
     if(!deal.buyerId) return setMessage("Assign a buyer to this deal before creating a sales order.");
     post("/api/sales-orders",{companyId:deal.companyId,dealId:deal.id,buyerId:deal.buyerId,materialId:deal.materialId,reference:"SO-"+Date.now(),quantity:qty,rate:Number(deal.sellRate||0),status:"Confirmed"});
@@ -127,7 +146,25 @@ export default function DealWorkspace({deal,payments,masters}:any){
 
       {tab==="agreements"&&<ActionSection title="Agreements" icon={<FileCheck2 size={16}/>} actions={<><button onClick={()=>createAgreement("SELLER")} disabled={busy}><Plus size={14}/> Seller Agreement</button><button onClick={()=>createAgreement("BUYER")} disabled={busy}><Plus size={14}/> Buyer Agreement</button></>}><DataTable rows={deal.agreements} cols={["side","status","version","validUntil"]}/></ActionSection>}
 
-      {tab==="purchase"&&<ActionSection title="Procurement" icon={<PackageCheck size={16}/>} actions={<button onClick={createPurchase} disabled={busy}><Plus size={14}/> Receive Purchase</button>}><DataTable rows={deal.purchases} cols={["reference","purchaseType","quantity","rate","status"]}/></ActionSection>}
+      {tab==="purchase"&&<>
+  {deal.dealSources?.length>0 ? <ActionSection title="Source-wise procurement" icon={<PackageCheck size={16}/>}><div className="workspaceGrid">
+    {deal.dealSources.map((source:any)=>{
+      const received=(deal.purchases||[]).filter((p:any)=>p.dealSourceId===source.id&&p.status==="Received").reduce((sum:number,p:any)=>sum+Number(p.quantity||0),0);
+      const remaining=Math.max(0,Number(source.quantity)-received);
+      return <div className="workspaceCard" key={source.id}>
+        <div className="cardTitleRow"><h3>{source.seller?.name||"Supplier"}</h3><span className="muted">{source.location||"—"}</span></div>
+        <Row label="Committed source" value={Number(source.quantity).toLocaleString("en-IN")+" "+deal.material.unit}/>
+        <Row label="Buy rate" value={money(source.buyRate)+"/"+deal.material.unit.toLowerCase()}/>
+        <Row label="Received" value={received.toLocaleString("en-IN")+" "+deal.material.unit}/>
+        <Row label="Remaining" value={remaining.toLocaleString("en-IN")+" "+deal.material.unit}/>
+        <button className="saveBtn" onClick={()=>receiveSource(source)} disabled={busy||remaining<=0}><PackageCheck size={14}/> {remaining<=0?"Fully Received":"Receive Stock"}</button>
+      </div>
+    })}
+  </div></ActionSection> : <ActionSection title="Procurement" icon={<PackageCheck size={16}/>} actions={<button onClick={createPurchase} disabled={busy}><Plus size={14}/> Receive Purchase</button>}>
+    <DataTable rows={deal.purchases} cols={["reference","purchaseType","quantity","rate","status"]}/>
+  </ActionSection>}
+  <ActionSection title="Purchase records" icon={<PackageCheck size={16}/>}><DataTable rows={deal.purchases} cols={["reference","dealSource","quantity","rate","status","receivedAt"]} nested/></ActionSection>
+</>}
 
       {tab==="inventory"&&<>
         {deal.dealSources?.length>0&&<ActionSection title="Supply sources" icon={<PackageCheck size={16}/>}><DataTable rows={deal.dealSources} cols={["seller","quantity","buyRate","location"]} nested/></ActionSection>}
