@@ -4,12 +4,12 @@ import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Trash2, CheckSquare, Square, Pencil, Save } from "lucide-react";
 
-type Props = { mode: "suppliers" | "requirements"; rows: any[] };
+type Props = { mode: "suppliers" | "requirements"; rows: any[]; materials?: any[] };
 
 const money = (v:any) => v == null || v === "" ? "—" : "₹" + Number(v).toLocaleString("en-IN");
 const qty = (v:any,u?:string) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-IN") + (u ? " " + u : "");
 
-export default function SupplyDemandRegister({mode,rows}:Props){
+export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
   const router=useRouter();
   const isSupply=mode==="suppliers";
   const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
@@ -59,9 +59,9 @@ export default function SupplyDemandRegister({mode,rows}:Props){
   function beginEdit(r:any){
     if(isSupply){
       const supply=r.supplies?.[0];
-      setEditing({kind:"supplier", sellerId:r.seller.id, supplyId:supply?.id||"", name:r.seller.name||"", phone:r.seller.phone||"", email:r.seller.email||"", city:r.seller.city||"", category:r.seller.category||"", material:supply?.material?.name||"", quantity:supply?.quantity??"", unit:supply?.unit||supply?.material?.unit||"KG", grade:supply?.material?.grade||"", specification:supply?.material?.specification||"", askingRate:supply?.askingRate??"", marketRate:supply?.estimatedMarketRate??"", sourceType:supply?.sourceType||"Surplus / Dead Stock", location:supply?.location||"", status:supply?.status||"Open", notes:supply?.notes||""});
+      setEditing({kind:"supplier", sellerId:r.seller.id, supplyId:supply?.id||"", materialId:supply?.materialId||supply?.material?.id||"", name:r.seller.name||"", phone:r.seller.phone||"", email:r.seller.email||"", city:r.seller.city||"", category:r.seller.category||"", material:supply?.material?.name||"", grade:supply?.grade||supply?.material?.grade||"", specification:supply?.specification||supply?.material?.specification||"", quantity:supply?.quantity??"", unit:supply?.unit||supply?.material?.unit||"KG", askingRate:supply?.askingRate??"", marketRate:supply?.estimatedMarketRate??"", sourceType:supply?.sourceType||"Surplus / Dead Stock", location:supply?.location||"", status:supply?.status||"Open", notes:supply?.notes||""});
     }else{
-      setEditing({kind:"buyer", demandId:r.id, buyerId:r.buyer?.id||"", name:r.buyer?.name||"", phone:r.buyer?.phone||"", email:r.buyer?.email||"", city:r.buyer?.city||"", material:r.material?.name||"", quantity:r.quantity??"", unit:r.unit||r.material?.unit||"KG", targetRate:r.targetRate??"", requiredBy:r.requiredBy?new Date(r.requiredBy).toISOString().slice(0,10):"", location:r.location||"", status:r.status||"Open", notes:r.notes||""});
+      setEditing({kind:"buyer", demandId:r.id, buyerId:r.buyer?.id||"", materialId:r.materialId||r.material?.id||"", name:r.buyer?.name||"", phone:r.buyer?.phone||"", email:r.buyer?.email||"", city:r.buyer?.city||"", material:r.material?.name||"", grade:r.grade||r.material?.grade||"", specification:r.specification||r.material?.specification||"", quantity:r.quantity??"", unit:r.unit||r.material?.unit||"KG", targetRate:r.targetRate??"", requiredBy:r.requiredBy?new Date(r.requiredBy).toISOString().slice(0,10):"", location:r.location||"", status:r.status||"Open", notes:r.notes||""});
     }
   }
 
@@ -75,9 +75,9 @@ export default function SupplyDemandRegister({mode,rows}:Props){
       };
       if(editing.kind==="supplier"){
         await patch("sellers",{id:editing.sellerId,name:editing.name,phone:editing.phone,email:editing.email,city:editing.city,category:editing.category});
-        if(editing.supplyId) await patch("opportunities",{id:editing.supplyId,quantity:editing.quantity,unit:editing.unit,askingRate:editing.askingRate,estimatedMarketRate:editing.marketRate,sourceType:editing.sourceType,status:editing.status,location:editing.location,notes:editing.notes});
+        if(editing.supplyId) await patch("opportunities",{id:editing.supplyId,materialId:editing.materialId,grade:editing.grade||null,specification:editing.specification||null,quantity:editing.quantity,unit:editing.unit,askingRate:editing.askingRate,estimatedMarketRate:editing.marketRate,sourceType:editing.sourceType,status:editing.status,location:editing.location,notes:editing.notes});
       }else{
-        await patch("buyer-demands",{id:editing.demandId,quantity:editing.quantity,unit:editing.unit,targetRate:editing.targetRate,requiredBy:editing.requiredBy||null,location:editing.location,status:editing.status,notes:editing.notes});
+        await patch("buyer-demands",{id:editing.demandId,materialId:editing.materialId,grade:editing.grade||null,specification:editing.specification||null,quantity:editing.quantity,unit:editing.unit,targetRate:editing.targetRate,requiredBy:editing.requiredBy||null,location:editing.location,status:editing.status,notes:editing.notes});
         if(editing.buyerId) await patch("customers-and-buyers",{id:editing.buyerId,name:editing.name,phone:editing.phone,email:editing.email,city:editing.city});
       }
       setEditing(null); router.refresh();
