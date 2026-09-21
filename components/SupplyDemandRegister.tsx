@@ -67,6 +67,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
 
   async function saveEdit(){
     if(!editing)return;
+    if(!editing.materialId){ alert("Please select a valid material from the material list."); return; }
     setSaving(true);
     try{
       const patch=async(module:string,body:any)=>{
@@ -158,9 +159,9 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
         </div>
         <div className="editSectionTitle">Material & Commercial Details</div>
         <div className="editGrid">
-          <label>Material<input value={editing.material} disabled/></label>
-          <label>Grade<input value={editing.grade} disabled/></label>
-          <label>Specification<input value={editing.specification} disabled/></label>
+          <label>Material<input list="edit-material-options" value={editing.material} onChange={e=>{const name=e.target.value; const m=materials.find((x:any)=>x.name===name); setEditing({...editing,material:name,materialId:m?.id||""})}}/><datalist id="edit-material-options">{materials.map((m:any)=><option key={m.id} value={m.name}>{[m.grade,m.specification].filter(Boolean).join(" · ")}</option>)}</datalist></label>
+          <label>Grade<input value={editing.grade} onChange={e=>setEditing({...editing,grade:e.target.value})}/></label>
+          <label>Specification<input value={editing.specification} onChange={e=>setEditing({...editing,specification:e.target.value})}/></label>
           <label>Quantity / Weight<input type="number" value={editing.quantity} onChange={e=>setEditing({...editing,quantity:e.target.value})}/></label>
           <label>Unit<input value={editing.unit} onChange={e=>setEditing({...editing,unit:e.target.value})}/></label>
           {editing.kind==="supplier"?<><label>Buy Rate<input type="number" value={editing.askingRate} onChange={e=>setEditing({...editing,askingRate:e.target.value})}/></label><label>Market Rate<input type="number" value={editing.marketRate} onChange={e=>setEditing({...editing,marketRate:e.target.value})}/></label><label>Source Type<select value={editing.sourceType} onChange={e=>setEditing({...editing,sourceType:e.target.value})}><option>Surplus / Dead Stock</option><option>Direct Corporate Purchase</option><option>Regular Supplier Purchase</option><option>Stock / Inventory Purchase</option><option>Other</option></select></label><label>Status<select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}><option>Open</option><option>Hot</option><option>Converted</option><option>Closed</option></select></label><label>Supply Location<input value={editing.location} onChange={e=>setEditing({...editing,location:e.target.value})}/></label></>:<><label>Target Rate<input type="number" value={editing.targetRate} onChange={e=>setEditing({...editing,targetRate:e.target.value})}/></label><label>Required By<input type="date" value={editing.requiredBy} onChange={e=>setEditing({...editing,requiredBy:e.target.value})}/></label><label>Status<select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}><option>Open</option><option>Urgent</option><option>Matched</option><option>Closed</option></select></label><label>Requirement Location<input value={editing.location} onChange={e=>setEditing({...editing,location:e.target.value})}/></label></>}
