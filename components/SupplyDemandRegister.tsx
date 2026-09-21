@@ -114,8 +114,8 @@ export default function SupplyDemandRegister({mode,rows}:Props){
         const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));
         const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));
         const rowStatuses=Array.from(new Set(supplies.map((s:any)=>s.status).filter(Boolean)));
-        return <>
-          <tr key={r.id} className={expanded?"expandedRow":""}>
+        return <Fragment key={r.id}>
+          <tr className={expanded?"expandedRow":""}>
             <td><button className="selectAllBtn" onClick={()=>toggle(r.id)}>{checked?<CheckSquare size={15}/>:<Square size={15}/>}</button></td>
             <td><b>{p?.name||"—"}</b><small>{p?.category||""}</small></td>
             <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
@@ -141,7 +141,7 @@ export default function SupplyDemandRegister({mode,rows}:Props){
               {!isSupply&&<div className="detailsWide"><label>Notes</label><strong>{r.notes||"—"}</strong></div>}
             </div>
           </div></td></tr>}
-        </>;
+        </Fragment>;
       })}
       {!filtered.length&&<tr><td colSpan={isSupply?12:11} className="emptyRegister">No matching records. Try clearing a filter or add a new record from Supply & Demand.</td></tr>}
     </tbody></table></div>
