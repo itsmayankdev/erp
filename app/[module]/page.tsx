@@ -66,6 +66,8 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
   }
 
+  const clientRows = JSON.parse(JSON.stringify(rows));
+
   return (
     <main className="modulePage">
       <header className="moduleHeader">
