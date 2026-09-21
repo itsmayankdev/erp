@@ -29,6 +29,10 @@ export default function SmartMaterialFinder({
   const [quantity, setQuantity] = useState("");
   const [location, setLocation] = useState("");
   const [maxRate, setMaxRate] = useState("");
+  const [ignoreQuery, setIgnoreQuery] = useState(false);
+  const [ignoreQuantity, setIgnoreQuantity] = useState(false);
+  const [ignoreLocation, setIgnoreLocation] = useState(false);
+  const [ignoreMaxRate, setIgnoreMaxRate] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -54,6 +58,10 @@ export default function SmartMaterialFinder({
       demand.targetRate ? String(Number(demand.targetRate)) : ""
     );
     setLocation(demand.location || "");
+    setIgnoreQuery(false);
+    setIgnoreQuantity(false);
+    setIgnoreLocation(false);
+    setIgnoreMaxRate(false);
     setQuery(
       [
         demand.material?.name,
@@ -79,10 +87,10 @@ export default function SmartMaterialFinder({
       const params = new URLSearchParams();
 
       if (materialId) params.set("materialId", materialId);
-      if (query) params.set("q", query);
-      if (quantity) params.set("quantity", quantity);
-      if (location) params.set("location", location);
-      if (maxRate) params.set("maxRate", maxRate);
+      if (!ignoreQuery && query) params.set("q", query);
+      if (!ignoreQuantity && quantity) params.set("quantity", quantity);
+      if (!ignoreLocation && location) params.set("location", location);
+      if (!ignoreMaxRate && maxRate) params.set("maxRate", maxRate);
       if (buyerId) params.set("buyerId", buyerId);
       if (demandId) params.set("demandId", demandId);
 
@@ -285,41 +293,101 @@ export default function SmartMaterialFinder({
             </select>
           </label>
 
-          <label>
-            Material / size / specification
+          <label className="finderFilterField">
+            <span className="finderFilterLabel">
+              <span>Material / size / specification</span>
+              <label className="finderOptional">
+                <input
+                  type="checkbox"
+                  checked={ignoreQuery}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIgnoreQuery(checked);
+                    if (checked) setQuery("");
+                  }}
+                />
+                Not required
+              </label>
+            </span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="e.g. HR Coil 2mm 1250"
+              placeholder={ignoreQuery ? "Filter disabled" : "e.g. HR Coil 2mm 1250"}
+              disabled={ignoreQuery}
             />
           </label>
 
-          <label>
-            Required quantity
+          <label className="finderFilterField">
+            <span className="finderFilterLabel">
+              <span>Required quantity</span>
+              <label className="finderOptional">
+                <input
+                  type="checkbox"
+                  checked={ignoreQuantity}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIgnoreQuantity(checked);
+                    if (checked) setQuantity("");
+                  }}
+                />
+                Not required
+              </label>
+            </span>
             <input
               type="number"
               value={quantity}
               onChange={(event) => setQuantity(event.target.value)}
-              placeholder="e.g. 50000"
+              placeholder={ignoreQuantity ? "Filter disabled" : "e.g. 50000"}
+              disabled={ignoreQuantity}
             />
           </label>
 
-          <label>
-            Location
+          <label className="finderFilterField">
+            <span className="finderFilterLabel">
+              <span>Location</span>
+              <label className="finderOptional">
+                <input
+                  type="checkbox"
+                  checked={ignoreLocation}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIgnoreLocation(checked);
+                    if (checked) setLocation("");
+                  }}
+                />
+                Not required
+              </label>
+            </span>
             <input
               value={location}
               onChange={(event) => setLocation(event.target.value)}
-              placeholder="Delhi / Faridabad / Bawal"
+              placeholder={ignoreLocation ? "Filter disabled" : "Delhi / Faridabad / Bawal"}
+              disabled={ignoreLocation}
             />
           </label>
 
-          <label>
-            Maximum buy rate
+          <label className="finderFilterField">
+            <span className="finderFilterLabel">
+              <span>Maximum buy rate</span>
+              <label className="finderOptional">
+                <input
+                  type="checkbox"
+                  checked={ignoreMaxRate}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setIgnoreMaxRate(checked);
+                    if (checked) setMaxRate("");
+                  }}
+                />
+                Not required
+              </label>
+            </span>
             <input
               type="number"
               value={maxRate}
               onChange={(event) => setMaxRate(event.target.value)}
-              placeholder="Optional ₹/unit"
+              placeholder={ignoreMaxRate ? "Filter disabled" : "Optional ₹/unit"}
+              disabled={ignoreMaxRate}
             />
           </label>
 
