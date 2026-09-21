@@ -2,22 +2,23 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Trash2, CheckSquare, Square } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Trash2, CheckSquare, Square, Pencil, Save } from "lucide-react";
 
 type Props = { mode: "suppliers" | "requirements"; rows: any[] };
 
-const money = (v:any) => v == null ? "—" : "₹" + Number(v).toLocaleString("en-IN");
-const qty = (v:any,u?:string) => v == null ? "—" : Number(v).toLocaleString("en-IN") + (u ? " " + u : "");
+const money = (v:any) => v == null || v === "" ? "—" : "₹" + Number(v).toLocaleString("en-IN");
+const qty = (v:any,u?:string) => v == null || v === "" ? "—" : Number(v).toLocaleString("en-IN") + (u ? " " + u : "");
 
 export default function SupplyDemandRegister({mode,rows}:Props){
-  const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
-  const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
   const router=useRouter();
   const isSupply=mode==="suppliers";
+  const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
+  const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
+  const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);
 
   const materials=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
-  const parties=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.name:r.buyer?.name)).filter(Boolean))).sort(),[rows]);
-  const cities=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.city:r.buyer?.city)||r.location).filter(Boolean))).sort(),[rows]);
+  const parties=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.name:r.buyer?.name)).filter(Boolean))).sort(),[rows,isSupply]);
+  const cities=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.city:r.buyer?.city)||r.location).filter(Boolean))).sort(),[rows,isSupply]);
   const types=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.sourceType):[r.sourceType]).filter(Boolean))).sort(),[rows,isSupply]);
   const statuses=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.status):[r.status]).filter(Boolean))).sort(),[rows,isSupply]);
 
@@ -27,11 +28,12 @@ export default function SupplyDemandRegister({mode,rows}:Props){
       const p=isSupply?r.seller:r.buyer;
       const nested=isSupply?(r.supplies||[]):[r];
       const hay=[p?.name,p?.phone,p?.email,p?.city,r.location,r.notes,...nested.flatMap((s:any)=>[s.material?.name,s.material?.grade,s.material?.specification,s.location,s.notes,s.sourceType,s.status])].join(" ").toLowerCase();
-      const matchesMaterial=!material||nested.some((s:any)=>s.material?.name===material);
-      const matchesCity=!city||((p?.city||r.location)===city)||nested.some((s:any)=>(s.location||p?.city)===city);
-      const matchesStatus=!status||nested.some((s:any)=>s.status===status);
-      const matchesType=!type||nested.some((s:any)=>s.sourceType===type);
-      return (!needle||hay.includes(needle))&&matchesMaterial&&(!party||p?.name===party)&&matchesCity&&matchesStatus&&matchesType;
+      return (!needle||hay.includes(needle))
+        &&(!material||nested.some((s:any)=>s.material?.name===material))
+        &&(!party||p?.name===party)
+        &&(!city||((p?.city||r.location)===city)||nested.some((s:any)=>(s.location||p?.city)===city))
+        &&(!status||nested.some((s:any)=>s.status===status))
+        &&(!type||nested.some((s:any)=>s.sourceType===type));
     });
   },[rows,q,material,party,city,status,type,isSupply]);
 
@@ -42,21 +44,44 @@ export default function SupplyDemandRegister({mode,rows}:Props){
 
   async function remove(ids:string[]){
     if(!ids.length)return;
-    const label=ids.length===1?"this record":ids.length+" selected records";
-    if(!confirm("Delete "+label+"? This cannot be undone."))return;
+    if(!confirm("Delete "+(ids.length===1?"this record":ids.length+" selected records")+"? This cannot be undone."))return;
     setDeleting(true);
     try{
       for(const id of ids){
-        const module = isSupply ? "sellers" : "buyer-demands";
-        const recordId = id;
-        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
+        const res=await fetch("/api/records?module="+(isSupply?"sellers":"buyer-demands"),{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
         const data=await res.json();
         if(!res.ok)throw new Error(data.error||"Unable to delete record");
       }
-      setSelected([]);
-      setOpen(null);
-      router.refresh();
+      setSelected([]); setOpen(null); setDeleting(false); router.refresh();
     }catch(e:any){alert(e.message);setDeleting(false)}
+  }
+
+  function beginEdit(r:any){
+    if(isSupply){
+      const supply=r.supplies?.[0];
+      setEditing({kind:"supplier", sellerId:r.seller.id, supplyId:supply?.id||"", name:r.seller.name||"", phone:r.seller.phone||"", email:r.seller.email||"", city:r.seller.city||"", category:r.seller.category||"", material:supply?.material?.name||"", quantity:supply?.quantity??"", unit:supply?.unit||supply?.material?.unit||"KG", grade:supply?.material?.grade||"", specification:supply?.material?.specification||"", askingRate:supply?.askingRate??"", marketRate:supply?.estimatedMarketRate??"", sourceType:supply?.sourceType||"Surplus / Dead Stock", location:supply?.location||"", status:supply?.status||"Open", notes:supply?.notes||""});
+    }else{
+      setEditing({kind:"buyer", demandId:r.id, buyerId:r.buyer?.id||"", name:r.buyer?.name||"", phone:r.buyer?.phone||"", email:r.buyer?.email||"", city:r.buyer?.city||"", material:r.material?.name||"", quantity:r.quantity??"", unit:r.unit||r.material?.unit||"KG", targetRate:r.targetRate??"", requiredBy:r.requiredBy?new Date(r.requiredBy).toISOString().slice(0,10):"", location:r.location||"", status:r.status||"Open", notes:r.notes||""});
+    }
+  }
+
+  async function saveEdit(){
+    if(!editing)return;
+    setSaving(true);
+    try{
+      const patch=async(module:string,body:any)=>{
+        const res=await fetch("/api/records?module="+module,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const data=await res.json(); if(!res.ok)throw new Error(data.error||"Unable to save changes"); return data;
+      };
+      if(editing.kind==="supplier"){
+        await patch("sellers",{id:editing.sellerId,name:editing.name,phone:editing.phone,email:editing.email,city:editing.city,category:editing.category});
+        if(editing.supplyId) await patch("opportunities",{id:editing.supplyId,quantity:editing.quantity,unit:editing.unit,askingRate:editing.askingRate,estimatedMarketRate:editing.marketRate,sourceType:editing.sourceType,status:editing.status,location:editing.location,notes:editing.notes});
+      }else{
+        await patch("buyer-demands",{id:editing.demandId,quantity:editing.quantity,unit:editing.unit,targetRate:editing.targetRate,requiredBy:editing.requiredBy||null,location:editing.location,status:editing.status,notes:editing.notes});
+        if(editing.buyerId) await patch("customers-and-buyers",{id:editing.buyerId,name:editing.name,phone:editing.phone,email:editing.email,city:editing.city});
+      }
+      setEditing(null); router.refresh();
+    }catch(e:any){alert(e.message)}finally{setSaving(false)}
   }
 
   const active=[q,material,party,city,status,type].filter(Boolean).length;
@@ -89,21 +114,60 @@ export default function SupplyDemandRegister({mode,rows}:Props){
         const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));
         const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));
         const rowStatuses=Array.from(new Set(supplies.map((s:any)=>s.status).filter(Boolean)));
-        return <tr key={r.id} className={expanded?"expandedRow":""}>
-          <td><button className="selectAllBtn" onClick={()=>toggle(r.id)}>{checked?<CheckSquare size={15}/>:<Square size={15}/>}</button></td>
-          <td><b>{p?.name||"—"}</b><small>{p?.category||""}</small></td>
-          <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
-          <td><b>{materialNames.length?materialNames.join(", "):"No supply recorded"}</b><small>{isSupply?materialNames.length+" material"+(materialNames.length===1?"":"s"):(r.material?.unit||r.unit||"KG")}</small></td>
-          <td>{grades.length?grades.join(", "):"—"}<small>{specs.length?specs.join(" · "):"—"}</small></td>
-          <td>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</td><td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
-          {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
-          <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
-          <td>{p?.city||r.location||"—"}</td><td><span className="status">{rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses.length+" statuses":"No active supply"}</span></td>
-          <td><div className="registerActions"><button className="registerExpand" onClick={()=>setOpen(expanded?null:r.id)} title="View details">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button><button className="registerDelete" onClick={()=>remove([r.id])} title="Delete record" disabled={deleting}><Trash2 size={14}/></button></div></td>
-          {expanded&&<td colSpan={12} className="registerDetails"><div><b>{isSupply?"Supplier details":"Requirement details"}</b><span>Company: {p?.name||"—"}</span><span>Phone: {p?.phone||"—"}</span><span>Email: {p?.email||"—"}</span><span>City: {p?.city||"—"}</span>{isSupply?(supplies.length?<div className="registerSupplyList">{supplies.map((s:any)=><div key={s.id}><b>{s.material?.name||"Unknown material"}</b><span>{qty(s.quantity,s.unit)}</span><span>Buy {money(s.askingRate)}</span><span>Market {money(s.estimatedMarketRate)}</span><span>{s.sourceType||"—"}</span><span>{s.location||"—"}</span><span>{s.status||"—"}</span></div>)}</div>:<span>No supply records yet.</span>):<><span>Material: {r.material?.name||"—"}</span><span>Grade: {r.material?.grade||"—"}</span><span>Specification: {r.material?.specification||"—"}</span><span>Quantity: {qty(r.quantity,r.unit)}</span><span>Target rate: {money(r.targetRate)}</span><span>Notes: {r.notes||"—"}</span></>}</div></td>}
-        </tr>
+        return <>
+          <tr key={r.id} className={expanded?"expandedRow":""}>
+            <td><button className="selectAllBtn" onClick={()=>toggle(r.id)}>{checked?<CheckSquare size={15}/>:<Square size={15}/>}</button></td>
+            <td><b>{p?.name||"—"}</b><small>{p?.category||""}</small></td>
+            <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
+            <td><b>{materialNames.length?materialNames.join(", "):"No supply recorded"}</b><small>{materialNames.length+" material"+(materialNames.length===1?"":"s")}</small></td>
+            <td>{grades.length?grades.join(", "):"—"}<small>{specs.length?specs.join(" · "):"—"}</small></td>
+            <td>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</td>
+            <td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
+            {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
+            <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
+            <td>{p?.city||r.location||"—"}</td><td><span className="status">{rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses.length+" statuses":"No active supply"}</span></td>
+            <td><div className="registerActions"><button className="registerEdit" onClick={()=>beginEdit(r)} title="Edit"><Pencil size={14}/></button><button className="registerExpand" onClick={()=>setOpen(expanded?null:r.id)} title="View details">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button><button className="registerDelete" onClick={()=>remove([r.id])} title="Delete record" disabled={deleting}><Trash2 size={14}/></button></div></td>
+          </tr>
+          {expanded&&<tr key={r.id+"-details"}><td colSpan={isSupply?12:11} className="registerDetailsCell"><div className="registerDetailsCard">
+            <div className="detailsHeader"><div><span className="detailsEyebrow">{isSupply?"SUPPLIER PROFILE":"BUYER REQUIREMENT"}</span><h3>{p?.name||"—"}</h3></div><button className="detailsEditBtn" onClick={()=>beginEdit(r)}><Pencil size={13}/> Edit</button></div>
+            <div className="detailsGrid">
+              <div><label>Phone</label><strong>{p?.phone||"—"}</strong></div><div><label>Email</label><strong>{p?.email||"—"}</strong></div><div><label>City</label><strong>{p?.city||r.location||"—"}</strong></div><div><label>Material</label><strong>{materialNames.join(", ")||"—"}</strong></div>
+              <div><label>Quantity</label><strong>{qty(totalQty,supplies[0]?.unit||r.unit||"KG")}</strong></div>
+              <div><label>{isSupply?"Buy Rate":"Target Rate"}</label><strong>{isSupply?(rates.length===1?money(rates[0]):"Multiple"):money(r.targetRate)}</strong></div>
+              {isSupply&&<div><label>Market Rate</label><strong>{marketRates.length===1?money(marketRates[0]):"Multiple"}</strong></div>}
+              <div><label>{isSupply?"Source Type":"Required By"}</label><strong>{isSupply?sourceTypes.join(", ")||"—":(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</strong></div>
+              <div className="detailsWide"><label>Specification</label><strong>{[...grades,...specs].filter(Boolean).join(" · ")||"—"}</strong></div>
+              {isSupply&&<div className="detailsWide"><label>Supply Locations / Notes</label><strong>{supplies.map((s:any)=>[s.location,s.notes].filter(Boolean).join(" — ")).filter(Boolean).join(" | ")||"—"}</strong></div>}
+              {!isSupply&&<div className="detailsWide"><label>Notes</label><strong>{r.notes||"—"}</strong></div>}
+            </div>
+          </div></td></tr>}
+        </>;
       })}
       {!filtered.length&&<tr><td colSpan={isSupply?12:11} className="emptyRegister">No matching records. Try clearing a filter or add a new record from Supply & Demand.</td></tr>}
     </tbody></table></div>
+
+    {editing&&<div className="recordModalBackdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><div className="recordModal">
+      <div className="recordModalHead"><div><span>EDIT RECORD</span><h2>{editing.kind==="supplier"?"Edit Seller / Supply":"Edit Buyer Requirement"}</h2></div><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
+      <div className="recordModalBody">
+        <div className="editSectionTitle">Company / Contact</div>
+        <div className="editGrid">
+          <label>Name<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label>
+          <label>Phone<input value={editing.phone} onChange={e=>setEditing({...editing,phone:e.target.value})}/></label>
+          <label>Email<input value={editing.email} onChange={e=>setEditing({...editing,email:e.target.value})}/></label>
+          <label>City / Location<input value={editing.city} onChange={e=>setEditing({...editing,city:e.target.value})}/></label>
+        </div>
+        <div className="editSectionTitle">Material & Commercial Details</div>
+        <div className="editGrid">
+          <label>Material<input value={editing.material} disabled/></label>
+          <label>Grade<input value={editing.grade} disabled/></label>
+          <label>Specification<input value={editing.specification} disabled/></label>
+          <label>Quantity / Weight<input type="number" value={editing.quantity} onChange={e=>setEditing({...editing,quantity:e.target.value})}/></label>
+          <label>Unit<input value={editing.unit} onChange={e=>setEditing({...editing,unit:e.target.value})}/></label>
+          {editing.kind==="supplier"?<><label>Buy Rate<input type="number" value={editing.askingRate} onChange={e=>setEditing({...editing,askingRate:e.target.value})}/></label><label>Market Rate<input type="number" value={editing.marketRate} onChange={e=>setEditing({...editing,marketRate:e.target.value})}/></label><label>Source Type<select value={editing.sourceType} onChange={e=>setEditing({...editing,sourceType:e.target.value})}><option>Surplus / Dead Stock</option><option>Direct Corporate Purchase</option><option>Regular Supplier Purchase</option><option>Stock / Inventory Purchase</option><option>Other</option></select></label><label>Status<select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}><option>Open</option><option>Hot</option><option>Converted</option><option>Closed</option></select></label><label>Supply Location<input value={editing.location} onChange={e=>setEditing({...editing,location:e.target.value})}/></label></>:<><label>Target Rate<input type="number" value={editing.targetRate} onChange={e=>setEditing({...editing,targetRate:e.target.value})}/></label><label>Required By<input type="date" value={editing.requiredBy} onChange={e=>setEditing({...editing,requiredBy:e.target.value})}/></label><label>Status<select value={editing.status} onChange={e=>setEditing({...editing,status:e.target.value})}><option>Open</option><option>Urgent</option><option>Matched</option><option>Closed</option></select></label><label>Requirement Location<input value={editing.location} onChange={e=>setEditing({...editing,location:e.target.value})}/></label></>}
+        </div>
+        {editing.kind!=="supplier"&&<label className="editNotes">Notes<textarea value={editing.notes} onChange={e=>setEditing({...editing,notes:e.target.value})}/></label>}
+      </div>
+      <div className="recordModalFoot"><button className="secondaryBtn" onClick={()=>setEditing(null)}>Cancel</button><button className="primaryBtn" onClick={saveEdit} disabled={saving}><Save size={14}/>{saving?"Saving...":"Save changes"}</button></div>
+    </div></div>}
   </section>;
 }
