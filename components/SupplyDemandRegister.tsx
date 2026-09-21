@@ -112,7 +112,9 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
         const materialNames=Array.from(new Set(supplies.map((s:any)=>s.material?.name).filter(Boolean)));
         const grades=Array.from(new Set(supplies.map((s:any)=>s.material?.grade).filter(Boolean)));
         const specs=Array.from(new Set(supplies.map((s:any)=>s.material?.specification).filter(Boolean)));
-        const totalQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.quantity)||0),0);
+        const totalQty=supplies.reduce((sum:number,s:any)=>sum+Math.max(0,(Number(s.quantity)||0)-(Number(s.allocatedQuantity)||0)),0);
+        const committedQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.allocatedQuantity)||0),0);
+        const rawTotalQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.quantity)||0),0);
         const rates=Array.from(new Set(supplies.map((s:any)=>s.askingRate).filter((v:any)=>v!=null)));
         const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));
         const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));
@@ -124,18 +126,18 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
             <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
             <td><b>{materialNames.length?materialNames.join(", "):"No supply recorded"}</b><small>{materialNames.length+" material"+(materialNames.length===1?"":"s")}</small></td>
             <td>{grades.length?grades.join(", "):"—"}<small>{specs.length?specs.join(" · "):"—"}</small></td>
-            <td>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</td>
+            <td><b>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</b>{isSupply&&committedQty>0&&<small>Pending stock · {qty(totalQty,supplies[0]?.unit||"KG")}</small>}</td>
             <td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
             {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
             <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
-            <td>{p?.city||r.location||"—"}</td><td><span className="status">{rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses.length+" statuses":"No active supply"}</span></td>
+            <td>{p?.city||r.location||"—"}</td><td>{(()=>{const currentStatus=rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses[0]:"No active supply";const normalized=String(currentStatus).toLowerCase();const urgent=normalized==="urgent";const cls=normalized==="converted"||normalized==="fulfilled"?"status statusGreen":normalized.includes("partially")||normalized.includes("allocated")?"status statusOrange":normalized==="open"?"status statusRed":"status";return <span className={cls}>{urgent&&<b className="urgentStar" title="Urgent">★</b>}{currentStatus}</span>})()}</td>
             <td><div className="registerActions"><button className="registerEdit" onClick={()=>beginEdit(r)} title="Edit"><Pencil size={14}/></button><button className="registerExpand" onClick={()=>setOpen(expanded?null:r.id)} title="View details">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button><button className="registerDelete" onClick={()=>remove([r.id])} title="Delete record" disabled={deleting}><Trash2 size={14}/></button></div></td>
           </tr>
           {expanded&&<tr key={r.id+"-details"}><td colSpan={isSupply?12:11} className="registerDetailsCell"><div className="registerDetailsCard">
             <div className="detailsHeader"><div><span className="detailsEyebrow">{isSupply?"SUPPLIER PROFILE":"BUYER REQUIREMENT"}</span><h3>{p?.name||"—"}</h3></div><button className="detailsEditBtn" onClick={()=>beginEdit(r)}><Pencil size={13}/> Edit</button></div>
             <div className="detailsGrid">
               <div><label>Phone</label><strong>{p?.phone||"—"}</strong></div><div><label>Email</label><strong>{p?.email||"—"}</strong></div><div><label>City</label><strong>{p?.city||r.location||"—"}</strong></div><div><label>Material</label><strong>{materialNames.join(", ")||"—"}</strong></div>
-              <div><label>Quantity</label><strong>{qty(totalQty,supplies[0]?.unit||r.unit||"KG")}</strong></div>
+              <div><label>{isSupply?"Pending Stock":"Quantity"} </label><strong>{qty(totalQty,supplies[0]?.unit||r.unit||"KG")}</strong>{isSupply&&committedQty>0&&<small>Committed: {qty(committedQty,supplies[0]?.unit||"KG")} of {qty(rawTotalQty,supplies[0]?.unit||"KG")}</small>}</div>
               <div><label>{isSupply?"Buy Rate":"Target Rate"}</label><strong>{isSupply?(rates.length===1?money(rates[0]):"Multiple"):money(r.targetRate)}</strong></div>
               {isSupply&&<div><label>Market Rate</label><strong>{marketRates.length===1?money(marketRates[0]):"Multiple"}</strong></div>}
               <div><label>{isSupply?"Source Type":"Required By"}</label><strong>{isSupply?sourceTypes.join(", ")||"—":(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</strong></div>
