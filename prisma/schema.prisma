@@ -21,6 +21,10 @@ model Company {
   taxId           String?
   logoUrl         String?
   documentTerms   String?
+  purchaseOrderPrefix String @default("PO")
+  salesOrderPrefix String @default("SO")
+  invoicePrefix String @default("INV")
+  quotationPrefix String @default("QUO")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   sellers         Seller[] 
