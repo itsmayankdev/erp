@@ -114,6 +114,7 @@ model Opportunity {
   sellerId            String
   materialId          String
   quantity            Decimal  @db.Decimal(18,3)
+  allocatedQuantity   Decimal  @default(0) @db.Decimal(18,3)
   unit                String   @default("KG")
   askingRate          Decimal? @db.Decimal(18,4)
   estimatedMarketRate Decimal? @db.Decimal(18,4)
@@ -135,6 +136,7 @@ model BuyerDemand {
   buyerId     String
   materialId  String
   quantity    Decimal   @db.Decimal(18,3)
+  matchedQuantity Decimal @default(0) @db.Decimal(18,3)
   unit        String    @default("KG")
   targetRate  Decimal?  @db.Decimal(18,4)
   requiredBy  DateTime?
