@@ -214,7 +214,7 @@ export default function SmartMaterialFinder({
         );
       }
 
-      window.location.href = "/deals";
+      window.location.href = "/deals/" + data.deal.id;
     } catch (error: any) {
       alert(
         error.message || "Could not create the combined deal."
@@ -536,9 +536,9 @@ export default function SmartMaterialFinder({
             <button
               className="saveBtn"
               onClick={createCombinedDeal}
-              disabled={working || allocationTotal <= 0 || allocationTotal > allocationRequested || allocation.length < 2}
+              disabled={working || allocationTotal <= 0 || allocationTotal > allocationRequested}
             >
-              {working ? "Creating..." : allocationRemaining > 0 ? "Create Partial Allocation" : "Create Combined Deal"}
+              {working ? "Creating..." : allocationRemaining > 0 ? "Create Partial Allocation" : allocation.length > 1 ? "Create Combined Deal" : "Create Deal"}
               <ArrowRight size={13} />
             </button>
           </div>
