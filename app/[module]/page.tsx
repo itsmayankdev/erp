@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import RecordActions from "@/components/RecordActions";
 
 export const dynamic = "force-dynamic";
+
+const editable = new Set(["deals","opportunities","market-intelligence","customers-and-buyers","warehouses"]);
 
 const modules: Record<string, string> = {
   "market-intelligence": "Market Intelligence",
@@ -67,20 +70,20 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     <main className="modulePage">
       <header className="moduleHeader">
         <div><p className="eyebrow">ERP MODULE</p><h1>{title}</h1><p className="muted">{company.name} · {rows.length} records</p></div>
-        <div className="moduleActions"><Link className="secondaryBtn" href="/">← Dashboard</Link>{module === "deals" && <Link className="primary" href="/deals?action=new">+ New Deal</Link>}</div>
+        <div className="moduleActions"><Link className="secondaryBtn" href="/">← Dashboard</Link>{editable.has(module) && <RecordActions module={module} />}</div>
       </header>
       <section className="modulePanel">
         <div className="panelHead"><div><h3>{title} records</h3><p>Live data from PostgreSQL</p></div></div>
         <div className="tableWrap"><table><thead><tr>{columns.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>
           {rows.map((r:any)=><tr key={r.id}>
-            {module==="deals" && <><td><b>{r.id.slice(0,10)}</b><small>{r.procurementType}</small></td><td>{r.material.name}</td><td>{r.seller.name}</td><td>{r.buyer?.name ?? "—"}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.material.unit}</td><td>₹{Number(r.buyRate).toLocaleString("en-IN")}</td><td>{r.sellRate ? "₹"+Number(r.sellRate).toLocaleString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
-            {module==="opportunities" && <><td>{r.material.name}</td><td>{r.seller.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{r.askingRate ? "₹"+Number(r.askingRate) : "—"}</td><td>{r.estimatedMarketRate ? "₹"+Number(r.estimatedMarketRate) : "—"}</td><td>{r.sourceType}</td><td><span className="status">{r.status}</span></td></>}
-            {module==="market-intelligence" && <><td>{r.material.name}</td><td>{r.source ?? "—"}</td><td>{r.location ?? "—"}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td>{r.unit}</td><td>{new Date(r.capturedAt).toLocaleDateString("en-IN")}</td></>}
+            {module==="deals" && <><td><b>{r.id.slice(0,10)}</b><small>{r.procurementType}</small></td><td>{r.material.name}</td><td>{r.seller.name}</td><td>{r.buyer?.name ?? "—"}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.material.unit}</td><td>₹{Number(r.buyRate).toLocaleString("en-IN")}</td><td>{r.sellRate ? "₹"+Number(r.sellRate).toLocaleString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="opportunities" && <><td>{r.material.name}</td><td>{r.seller.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{r.askingRate ? "₹"+Number(r.askingRate) : "—"}</td><td>{r.estimatedMarketRate ? "₹"+Number(r.estimatedMarketRate) : "—"}</td><td>{r.sourceType}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="market-intelligence" && <><td>{r.material.name}</td><td>{r.source ?? "—"}</td><td>{r.location ?? "—"}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td>{r.unit}</td><td>{new Date(r.capturedAt).toLocaleDateString("en-IN")}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="inventory" && <><td>{r.material.name}</td><td>{r.warehouse?.name ?? "Unassigned"}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>{Number(r.reservedQty).toLocaleString("en-IN")}</td><td>{r.unitCost ? "₹"+Number(r.unitCost) : "—"}</td><td><span className="status">{r.status}</span></td></>}
             {module==="purchase" && <><td>{r.reference}</td><td>{r.material.name}</td><td>{r.seller.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td>{r.purchaseType}</td><td><span className="status">{r.status}</span></td></>}
             {(module==="sales" || module==="dispatch") && <><td>{r.reference}</td><td>{r.material.name}</td><td>{r.buyer.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td><span className="status">{r.status}</span></td><td>{r.dispatchDate ? new Date(r.dispatchDate).toLocaleDateString("en-IN") : "Pending"}</td></>}
-            {module==="customers-and-buyers" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.email ?? "—"}</td><td>{r.creditLimit ? "₹"+Number(r.creditLimit).toLocaleString("en-IN") : "—"}</td></>}
-            {module==="warehouses" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.capacity ? Number(r.capacity).toLocaleString("en-IN") : "—"}</td><td>{r.active ? "Active" : "Inactive"}</td></>}
+            {module==="customers-and-buyers" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.email ?? "—"}</td><td>{r.creditLimit ? "₹"+Number(r.creditLimit).toLocaleString("en-IN") : "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="warehouses" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.capacity ? Number(r.capacity).toLocaleString("en-IN") : "—"}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="agreements" && <><td>{r.deal.id.slice(0,10)}</td><td>{r.side}</td><td>v{r.version}</td><td><span className="status">{r.status}</span></td><td>{r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}</td></>}
             {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
           </tr>)}
