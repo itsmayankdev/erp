@@ -19,13 +19,12 @@ export default async function SupplyDemandPage(){
   const own=opportunities.filter((o:any)=>o.sellerId===seller.id);
   return own.length?own.map((o:any)=>({...o,seller})): [{id:"seller-"+seller.id,seller,material:null,quantity:null,unit:"KG",askingRate:null,estimatedMarketRate:null,sourceType:null,location:seller.city,status:"No active supply record",notes:null}];
  });
- const buyerRows=demands.map((d:any)=>({...d,buyer:d.buyer}));
  return <main className="modulePage">
-  <header className="moduleHeader"><div><p className="eyebrow">TRADING CONTROL DESK</p><h1>Supply & Demand</h1><p className="muted">{company.name} · one centralized entry point for supply, buyers and market requirements.</p></div></header>
+  <header className="moduleHeader"><div><p className="eyebrow">TRADING CONTROL DESK</p><h1>Supply & Demand</h1><p className="muted">{company.name} · one centralized entry point for supply, sellers and buyer requirements.</p></div></header>
   <SupplyDemandSections
    desk={<SupplyDemandDesk initialSellers={safe(sellers)} initialBuyers={safe(buyers)} initialMaterials={safe(materials)}/>}
    sellerRows={safe(sellerRows)}
-   buyerRows={safe(buyerRows)}
+   buyerRows={safe(demands)}
    sellerCount={sellers.length}
    buyerCount={buyers.length}
   />
