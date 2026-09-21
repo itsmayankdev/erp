@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 
 const n=(v:any)=>Number(v||0);
@@ -49,7 +49,7 @@ export default function TradeHistoryClient({counterparties,deals}:any){
   <section className="modulePanel">
    <div className="panelHead"><div><h3>{selected?.name||"All trade records"}</h3><p>Every trade retains its commercial context and linked records.</p></div><span className="status">{filtered.length} records</span></div>
    <div className="tableWrap"><table><thead><tr><th>Date</th><th>Deal</th><th>Relationship</th><th>Material</th><th>Qty</th><th>Buy Value</th><th>Sell Value</th><th>Profit</th><th>Payments</th><th>Status</th><th></th></tr></thead><tbody>
-    {filtered.map((d:any)=><tr key={d.id+"-"+d.role}>
+    {filtered.map((d:any)=><React.Fragment key={d.id+"-"+d.role}>
       <td>{new Date(d.createdAt).toLocaleDateString("en-IN")}</td>
       <td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td>
       <td><span className="tradeRole">{d.role==="seller"?"Supplier / Seller":"Customer / Buyer"}</span><small>{d.counterpartyName}</small></td>
@@ -64,7 +64,8 @@ export default function TradeHistoryClient({counterparties,deals}:any){
       <div><b>Purchase records</b>{d.details.purchases.length?d.details.purchases.map((p:any)=><p key={p.reference}>{p.reference} · {qty(p.quantity)} · {money(p.rate)}/unit · {p.status} · Paid {money(p.payments.reduce((x:number,v:number)=>x+v,0))}</p>):<p>None recorded</p>}</div>
       <div><b>Sales records</b>{d.details.sales.length?d.details.sales.map((s:any)=><p key={s.reference}>{s.reference} · {qty(s.quantity)} · {money(s.rate)}/unit · {s.status} · Received {money(s.payments.reduce((x:number,v:number)=>x+v,0))}</p>):<p>None recorded</p>}</div>
       <div className="tradeDetailActions"><span>Freight / loading / other: {money(d.freight)}</span><Link className="saveBtn" href={"/deals/"+d.id}>Open complete deal workspace</Link></div>
-    </div></td></tr> )}
+    </div></td></tr>}
+    </React.Fragment>)}
     {!filtered.length&&<tr><td colSpan={11} className="emptyRegister">No trade records match the selected company and filters.</td></tr>}
    </tbody></table></div>
   </section>
