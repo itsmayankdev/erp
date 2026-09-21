@@ -130,7 +130,14 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
             <td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
             {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
             <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
-            <td>{p?.city||r.location||"—"}</td><td>{(()=>{const currentStatus=rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses[0]:"No active supply";const normalized=String(currentStatus).toLowerCase();const urgent=normalized==="urgent";const cls=normalized==="converted"||normalized==="fulfilled"?"status statusGreen":normalized.includes("partially")||normalized.includes("allocated")?"status statusOrange":normalized==="open"?"status statusRed":"status";return <span className={cls}>{urgent&&<b className="urgentStar" title="Urgent">★</b>}{currentStatus}</span>})()}</td>
+            <td>{p?.city||r.location||"—"}</td><td>{(()=>{const normalizedStatuses=rowStatuses.map((s:any)=>String(s).toLowerCase());
+        const hasUrgent=normalizedStatuses.includes("urgent");
+        const allConverted=normalizedStatuses.length>0&&normalizedStatuses.every((s:any)=>s==="converted"||s==="fulfilled");
+        const hasPartial=normalizedStatuses.some((s:any)=>s.includes("partially")||s.includes("allocated")) || (isSupply&&committedQty>0&&totalQty>0);
+        const currentStatus=hasUrgent?"Urgent":allConverted?"Converted":hasPartial?"Partially Allocated":rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses[0]:"No active supply";
+        const normalized=String(currentStatus).toLowerCase();
+        const urgent=normalized==="urgent";
+        const cls=normalized==="converted"||normalized==="fulfilled"?"status statusGreen":normalized.includes("partially")||normalized.includes("allocated")?"status statusOrange":normalized==="open"?"status statusRed":"status";return <span className={cls}>{urgent&&<b className="urgentStar" title="Urgent">★</b>}{currentStatus}</span>})()}</td>
             <td><div className="registerActions"><button className="registerEdit" onClick={()=>beginEdit(r)} title="Edit"><Pencil size={14}/></button><button className="registerExpand" onClick={()=>setOpen(expanded?null:r.id)} title="View details">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button><button className="registerDelete" onClick={()=>remove([r.id])} title="Delete record" disabled={deleting}><Trash2 size={14}/></button></div></td>
           </tr>
           {expanded&&<tr key={r.id+"-details"}><td colSpan={isSupply?12:11} className="registerDetailsCell"><div className="registerDetailsCard">
