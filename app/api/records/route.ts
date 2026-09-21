@@ -67,3 +67,20 @@ export async function PATCH(req:NextRequest) {
     return NextResponse.json({ok:true});
   } catch(e:any) { return NextResponse.json({error:e?.message||"Unable to update record"},{status:400}); }
 }
+
+export async function DELETE(req:NextRequest) {
+  const module=req.nextUrl.searchParams.get("module")||"";
+  const model=modelMap[module];
+  if(!model) return NextResponse.json({error:"Unsupported module"},{status:400});
+  const body=await req.json().catch(()=>({}));
+  if(!body.id) return NextResponse.json({error:"Record id is required"},{status:400});
+  const company=await prisma.company.findFirst({orderBy:{createdAt:"asc"}});
+  if(!company) return NextResponse.json({error:"Company not initialized"},{status:400});
+  try {
+    const result=await (prisma as any)[model].deleteMany({where:{id:String(body.id),companyId:company.id}});
+    if(!result.count) return NextResponse.json({error:"Record not found"}, {status:404});
+    return NextResponse.json({ok:true});
+  } catch(e:any) {
+    return NextResponse.json({error:"This record is linked to other ERP records and cannot be deleted. Close or unlink those records first."},{status:409});
+  }
+}
