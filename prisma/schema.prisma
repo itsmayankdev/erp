@@ -224,6 +224,7 @@ model Purchase {
   id              String    @id @default(cuid())
   companyId       String
   dealId          String?
+  dealSourceId    String?
   sellerId        String
   materialId      String
   warehouseId     String?
@@ -239,7 +240,8 @@ model Purchase {
   receivedAt      DateTime?
   createdAt       DateTime  @default(now())
   company         Company   @relation(fields: [companyId], references: [id])
-  deal            Deal?     @relation(fields: [dealId], references: [id])
+  deal            Deal?       @relation(fields: [dealId], references: [id])
+  dealSource      DealSource?  @relation("DealSourcePurchases", fields: [dealSourceId], references: [id])
   seller          Seller    @relation(fields: [sellerId], references: [id])
   material        Material  @relation(fields: [materialId], references: [id])
   warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
@@ -360,6 +362,7 @@ model DealSource {
   deal          Deal        @relation(fields: [dealId], references: [id])
   opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
   seller        Seller?     @relation(fields: [sellerId], references: [id])
+  purchases     Purchase[]   @relation("DealSourcePurchases")
 }
 
 model StockAllocation {
