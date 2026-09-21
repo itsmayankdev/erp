@@ -11,6 +11,16 @@ model Company {
   id              String          @id @default(cuid())
   name            String
   code            String          @unique
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+  phone           String?
+  email           String?
+  website         String?
+  taxId           String?
+  logoUrl         String?
+  documentTerms   String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   sellers         Seller[] 
@@ -314,6 +324,10 @@ model Document {
   type        String
   reference   String?
   storageKey   String
+  entityType  String?
+  entityId    String?
+  format      String    @default("PDF")
+  generatedAt DateTime?
   status      String   @default("Pending")
   uploadedBy  String?
   createdAt   DateTime @default(now())
