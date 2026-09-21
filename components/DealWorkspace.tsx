@@ -68,10 +68,10 @@ export default function DealWorkspace({deal,payments,masters}:any){
     if(!sale) return setMessage("Create a sales order first.");
     setBusy(true); setMessage("");
     try{
-      const response=await fetch("/api/records?module=sales",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:sale.id,status:"Dispatched",dispatchDate:new Date().toISOString()})});
+      const response=await fetch("/api/sales-orders/"+sale.id+"/dispatch",{method:"POST",headers:{"Content-Type":"application/json"}});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Could not dispatch the sales order.");
-      setMessage("Sales order marked as dispatched."); setTimeout(()=>location.reload(),400);
+      setMessage("Sales order dispatched. Central inventory and stock usage records were updated."); setTimeout(()=>location.reload(),400);
     }catch(e:any){setMessage(e.message)}finally{setBusy(false)}
   }
 
