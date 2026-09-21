@@ -27,6 +27,7 @@ export default async function SupplyDemandPage(){
    buyerRows={safe(demands)}
    sellerCount={sellers.length}
    buyerCount={demands.length}
+   materials={safe(materials)}
   />
  </main>;
 }
