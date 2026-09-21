@@ -52,12 +52,18 @@ export default function TradeHistoryClient({counterparties,deals}:any){
       <td>{new Date(d.createdAt).toLocaleDateString("en-IN")}</td>
       <td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td>
       <td><span className="tradeRole">{d.role==="seller"?"Supplier / Seller":"Customer / Buyer"}</span><small>{d.counterpartyName}</small></td>
-      <td><b>{d.material?.name}</b><small>{[d.material?.grade,d.material?.specification].filter(Boolean).join(" · ")}</small></td>
+      <td><button className="tradeExpandBtn" onClick={()=>setExpanded(expanded===d.id+"-"+d.role?null:d.id+"-"+d.role)}><b>{d.material?.name}</b><small>{[d.material?.grade,d.material?.specification].filter(Boolean).join(" · ")} · {expanded===d.id+"-"+d.role?"Hide details":"View details"}</small></button></td>
       <td>{qty(d.quantity,d.material?.unit||"KG")}</td>
       <td>{money(d.purchaseValue)}</td><td>{money(d.salesValue)}</td><td className={n(d.profit)>=0?"profitPositive":"profitNegative"}>{money(d.profit)}</td>
       <td><small>Paid {money(d.paid)}</small><small>Due {money(Math.max(0,n(d.salesValue)-n(d.receivedSalesPayment)))}</small></td>
       <td><span className="status">{d.status}</span></td><td><Link className="secondaryBtn" href={"/deals/"+d.id}>Open</Link></td>
-    </tr>)}
+    </tr>
+    {expanded===d.id+"-"+d.role&&<tr><td colSpan={11}><div className="tradeDetailPanel">
+      <div><b>Supply sources</b>{d.details.sources.length?d.details.sources.map((s:any,i:number)=><p key={i}>{s.seller} · {qty(s.quantity)} · {money(s.buyRate)}/unit · {s.location}</p>):<p>—</p>}</div>
+      <div><b>Purchase records</b>{d.details.purchases.length?d.details.purchases.map((p:any)=><p key={p.reference}>{p.reference} · {qty(p.quantity)} · {money(p.rate)}/unit · {p.status} · Paid {money(p.payments.reduce((x:number,v:number)=>x+v,0))}</p>):<p>None recorded</p>}</div>
+      <div><b>Sales records</b>{d.details.sales.length?d.details.sales.map((s:any)=><p key={s.reference}>{s.reference} · {qty(s.quantity)} · {money(s.rate)}/unit · {s.status} · Received {money(s.payments.reduce((x:number,v:number)=>x+v,0))}</p>):<p>None recorded</p>}</div>
+      <div className="tradeDetailActions"><span>Freight / loading / other: {money(d.freight)}</span><Link className="saveBtn" href={"/deals/"+d.id}>Open complete deal workspace</Link></div>
+    </div></td></tr> )}
     {!filtered.length&&<tr><td colSpan={11} className="emptyRegister">No trade records match the selected company and filters.</td></tr>}
    </tbody></table></div>
   </section>
