@@ -35,6 +35,7 @@ export default function SmartMaterialFinder({
   const [selected, setSelected] = useState<any>(null);
   const [working, setWorking] = useState(false);
   const [allocation, setAllocation] = useState<any[]>([]);
+  const [allocationMode, setAllocationMode] = useState<"auto" | "manual">("auto");
 
   const buyerDemands = demands.filter(
     (d: any) => !buyerId || d.buyerId === buyerId
@@ -124,6 +125,7 @@ export default function SmartMaterialFinder({
       }
 
       setAllocation(plan);
+    setAllocationMode("auto");
     } catch (error: any) {
       alert(error.message || "Unable to search the supply network.");
       setResults([]);
@@ -133,6 +135,20 @@ export default function SmartMaterialFinder({
       setLoading(false);
     }
   }
+
+  function updateAllocation(opportunityId: string, value: string) {
+    const next = Math.max(0, Number(value) || 0);
+    setAllocation(current => current.map(item =>
+      item.opportunityId === opportunityId
+        ? { ...item, allocatedQuantity: Math.min(next, Number(item.quantity || 0)) }
+        : item
+    ));
+    setAllocationMode("manual");
+  }
+
+  const allocationRequested = Number(summary?.requestedQuantity || quantity || 0);
+  const allocationTotal = allocation.reduce((sum, item) => sum + Number(item.allocatedQuantity || 0), 0);
+  const allocationRemaining = Math.max(0, allocationRequested - allocationTotal);
 
   async function createDeal() {
     if (!selected?.opportunityId || !demandId) {
@@ -476,47 +492,68 @@ export default function SmartMaterialFinder({
         )}
       </section>
 
-      {allocation.length > 1 && demandId && (
+      {allocation.length > 0 && demandId && (
         <section className="finderAction splitMatch">
           <div>
-            <span className="eyebrow">MULTI-SOURCE MATCH</span>
+            <span className="eyebrow">MULTI-SOURCE ALLOCATION</span>
             <h3>
-              One buyer requirement can be fulfilled from{" "}
-              {allocation.length} suppliers
+              {allocation.length} supplier{allocation.length === 1 ? "" : "s"} can contribute to this requirement
             </h3>
             <p>
-              The ERP combines the lowest available sources until the
-              remaining buyer requirement is covered.
+              The ERP automatically allocates supply from the lowest-rate sources first.
+              You can adjust each quantity before creating the linked deals.
             </p>
+
+            <div className="allocationSummary">
+              <div><span>Required</span><b>{allocationRequested.toLocaleString("en-IN")} {allocation[0]?.unit || ""}</b></div>
+              <div><span>Allocated</span><b>{allocationTotal.toLocaleString("en-IN")} {allocation[0]?.unit || ""}</b></div>
+              <div><span>Remaining</span><b className={allocationRemaining > 0 ? "negative" : "positive"}>{allocationRemaining.toLocaleString("en-IN")} {allocation[0]?.unit || ""}</b></div>
+            </div>
 
             <div className="allocationList">
               {allocation.map((item: any) => (
-                <div key={item.opportunityId}>
-                  <span>{item.seller}</span>
-                  <b>
-                    {Number(item.allocatedQuantity).toLocaleString(
-                      "en-IN"
-                    )}{" "}
-                    {item.unit}
-                  </b>
-                  <span>
-                    {item.rate
-                      ? "₹" +
-                        Number(item.rate).toLocaleString("en-IN")
-                      : "Rate not recorded"}
-                  </span>
+                <div key={item.opportunityId} className="allocationRow">
+                  <div>
+                    <b>{item.seller}</b>
+                    <span>{item.location || "Location not recorded"} · {item.rate ? "₹" + Number(item.rate).toLocaleString("en-IN") : "Rate not recorded"}</span>
+                  </div>
+                  <label>
+                    <span>Allocate</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={Number(item.quantity || 0)}
+                      step="0.001"
+                      value={item.allocatedQuantity}
+                      onChange={e => updateAllocation(item.opportunityId, e.target.value)}
+                    />
+                    <small>of {Number(item.quantity).toLocaleString("en-IN")} {item.unit}</small>
+                  </label>
                 </div>
               ))}
             </div>
+            {allocationMode === "manual" && (
+              <button className="secondaryBtn" onClick={() => {
+                setAllocationMode("auto");
+                let remaining = allocationRequested;
+                setAllocation(current => current.map(item => {
+                  const take = Math.min(remaining, Number(item.quantity || 0));
+                  remaining -= take;
+                  return { ...item, allocatedQuantity: take };
+                }));
+              }}>
+                Reset to automatic allocation
+              </button>
+            )}
           </div>
 
           <div className="finderActionButtons">
             <button
               className="saveBtn"
               onClick={createCombinedDeal}
-              disabled={working}
+              disabled={working || allocationTotal <= 0 || allocationTotal > allocationRequested || allocation.length < 2}
             >
-              {working ? "Creating..." : "Create Combined Deal"}
+              {working ? "Creating..." : allocationRemaining > 0 ? "Create Partial Allocation" : "Create Combined Deal"}
               <ArrowRight size={13} />
             </button>
           </div>
