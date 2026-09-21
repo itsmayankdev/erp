@@ -5,7 +5,7 @@ import { Search, SlidersHorizontal, ArrowRight, Package, MapPin, CheckCircle2, X
 export default function SmartMaterialFinder({materials,buyers,demands}:any){
  const [materialId,setMaterialId]=useState(""),[buyerId,setBuyerId]=useState(""),[demandId,setDemandId]=useState("");
  const [query,setQuery]=useState(""),[quantity,setQuantity]=useState(""),[location,setLocation]=useState(""),[maxRate,setMaxRate]=useState("");
- const [results,setResults]=useState<any[]>([]),[summary,setSummary]=useState<any>(null),[loading,setLoading]=useState(false),[selected,setSelected]=useState<any>(null),[working,setWorking]=useState(false);
+ const [results,setResults]=useState<any[]>([]),[summary,setSummary]=useState<any>(null),[loading,setLoading]=useState(false),[selected,setSelected]=useState<any>(null),[working,setWorking]=useState(false),[allocation,setAllocation]=useState<any[]>([]);
  const buyerDemands=demands.filter((d:any)=>!buyerId||d.buyerId===buyerId);
  const selectedMaterial=materials.find((m:any)=>m.id===materialId);
  const selectedDemand=demands.find((d:any)=>d.id===demandId);
@@ -18,7 +18,7 @@ export default function SmartMaterialFinder({materials,buyers,demands}:any){
  async function search(){
   setLoading(true);setSelected(null);
   const p=new URLSearchParams(); if(materialId)p.set("materialId",materialId);if(query)p.set("q",query);if(quantity)p.set("quantity",quantity);if(location)p.set("location",location);if(maxRate)p.set("maxRate",maxRate);if(buyerId)p.set("buyerId",buyerId);if(demandId)p.set("demandId",demandId);
-  const r=await fetch("/api/smart-finder?"+p);const d=await r.json();setResults(d.results||[]);setSummary(d.summary||null);setLoading(false);
+  const r=await fetch("/api/smart-finder?"+p);const d=await r.json();const rs=d.results||[];setResults(rs);setSummary(d.summary||null);setLoading(false);\n  const need=Number(d.summary?.requestedQuantity||0); let left=need; const plan:any[]=[]; for(const x of rs){if(left<=0)break; if(!x.opportunityId)continue; const take=Math.min(left,Number(x.quantity)); if(take>0){plan.push({...x,allocatedQuantity:take});left-=take;}} setAllocation(plan);
  }
  async function createDeal(){
   if(!selected?.opportunityId||!demandId)return alert("Select a supplier opportunity and a buyer requirement first.");
@@ -56,6 +56,6 @@ export default function SmartMaterialFinder({materials,buyers,demands}:any){
     <button className="supplyAction" title="Select supply" onClick={()=>setSelected(r)}>{selected?.id===r.id?<CheckCircle2 size={15}/>:<ArrowRight size={15}/>}</button>
    </div>)}</div>}
   </section>
-  {selected&&<section className="finderAction"><div><span className="eyebrow">SELECTED SUPPLY</span><h3>{selected.material} · {Number(selected.quantity).toLocaleString("en-IN")} {selected.unit}</h3><p>{selected.seller} · {selected.location||"Location not recorded"} · {selected.rate?"₹"+Number(selected.rate):"Rate not recorded"}</p></div><div className="finderActionButtons"><button className="secondaryBtn" onClick={()=>setSelected(null)}><X size={13}/> Clear</button>{selected.opportunityId&&demandId&&<button className="saveBtn" onClick={createDeal} disabled={working}>{working?"Creating...":"Create Deal from Match"}<ArrowRight size={13}/></button>}</div></section>}
+  {allocation.length>1&&demandId&&<section className="finderAction splitMatch"><div><span className="eyebrow">MULTI-SOURCE MATCH</span><h3>One buyer requirement can be fulfilled from {allocation.length} suppliers</h3><p>Smart matching combines the cheapest available sources until the remaining requirement is covered.</p><div className="allocationList">{allocation.map((a:any)=><div key={a.opportunityId}><span>{a.seller}</span><b>{Number(a.allocatedQuantity).toLocaleString("en-IN")} {a.unit}</b><span>{a.rate?"₹"+Number(a.rate).toLocaleString("en-IN"):"Rate not recorded"}</span></div>)}</div></div><div className="finderActionButtons"><button className="saveBtn" onClick={async()=>{setWorking(true);const r=await fetch("/api/workflows/create-split-deals",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({demandId,allocations:allocation.map(a=>({opportunityId:a.opportunityId,quantity:a.allocatedQuantity}))})});const d=await r.json();setWorking(false);if(!r.ok)return alert(d.error||"Could not create combined deals.");window.location.href="/deals";}} disabled={working}>{working?"Creating...":"Create Combined Deal"}<ArrowRight size={13}/></button></div></section>}\n  {selected&&<section className="finderAction"><div><span className="eyebrow">SELECTED SUPPLY</span><h3>{selected.material} · {Number(selected.quantity).toLocaleString("en-IN")} {selected.unit}</h3><p>{selected.seller} · {selected.location||"Location not recorded"} · {selected.rate?"₹"+Number(selected.rate):"Rate not recorded"}</p></div><div className="finderActionButtons"><button className="secondaryBtn" onClick={()=>setSelected(null)}><X size={13}/> Clear</button>{selected.opportunityId&&demandId&&<button className="saveBtn" onClick={createDeal} disabled={working}>{working?"Creating...":"Create Deal from Match"}<ArrowRight size={13}/></button>}</div></section>}
  </div>;
 }
