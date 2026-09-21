@@ -12,7 +12,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     include: {
       seller: true, buyer: true, material: true, opportunity: true, demand: true,
       agreements: { orderBy: { updatedAt: "desc" } },
-      purchases: { include: { warehouse: true }, orderBy: { createdAt: "desc" } },
+      purchases: { include: { warehouse: true, dealSource: { include: { seller: true } } }, orderBy: { createdAt: "desc" } },
       salesOrders: { orderBy: { createdAt: "desc" } },
       stocks: { include: { warehouse: true, stockAllocations: true }, orderBy: { createdAt: "desc" } },
       dealSources: { include: { seller: true, opportunity: true }, orderBy: { createdAt: "asc" } }
