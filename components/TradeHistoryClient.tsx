@@ -48,7 +48,7 @@ export default function TradeHistoryClient({counterparties,deals}:any){
   <section className="modulePanel">
    <div className="panelHead"><div><h3>{selected?.name||"All trade records"}</h3><p>Every trade retains its commercial context and linked records.</p></div><span className="status">{filtered.length} records</span></div>
    <div className="tableWrap"><table><thead><tr><th>Date</th><th>Deal</th><th>Relationship</th><th>Material</th><th>Qty</th><th>Buy Value</th><th>Sell Value</th><th>Profit</th><th>Payments</th><th>Status</th><th></th></tr></thead><tbody>
-    {filtered.map((d:any)=><tr key={d.id}>
+    {filtered.map((d:any)=><tr key={d.id+"-"+d.role}>
       <td>{new Date(d.createdAt).toLocaleDateString("en-IN")}</td>
       <td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td>
       <td><span className="tradeRole">{d.role==="seller"?"Supplier / Seller":"Customer / Buyer"}</span><small>{d.counterpartyName}</small></td>
