@@ -5,7 +5,7 @@ import RecordActions from "@/components/RecordActions";
 
 export const dynamic = "force-dynamic";
 
-const editable = new Set(["deals","opportunities","market-intelligence","customers-and-buyers","warehouses"]);
+const editable = new Set(["deals","opportunities","market-intelligence","customers-and-buyers","warehouses","buyer-demands","sellers","materials"]);
 
 const modules: Record<string, string> = {
   "market-intelligence": "Market Intelligence",
@@ -59,6 +59,21 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
   } else if (module === "agreements") {
     rows = await prisma.agreement.findMany({ where: { companyId: company.id }, include: { deal: true }, orderBy: { updatedAt: "desc" } });
     columns = ["Deal", "Side", "Version", "Status", "Valid Until"];
+  } else if (module === "buyer-demands") {
+    rows = await prisma.buyerDemand.findMany({ where: { companyId: company.id }, include: { buyer: true, material: true }, orderBy: { updatedAt: "desc" } });
+    columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
+  } else if (module === "sellers") {
+    rows = await prisma.seller.findMany({ where: { companyId: company.id }, orderBy: { name: "asc" } });
+    columns = ["Supplier", "Category", "City", "Phone", "Reliability"];
+  } else if (module === "materials") {
+    rows = await prisma.material.findMany({ where: { companyId: company.id }, orderBy: { name: "asc" } });
+    columns = ["Code", "Material", "Grade", "Specification", "Unit", "Active"];
+  } else if (module === "payments") {
+    rows = await prisma.payment.findMany({ where: { companyId: company.id }, include: { buyer: true, purchase: true, salesOrder: true }, orderBy: { createdAt: "desc" } });
+    columns = ["Reference", "Type", "Party", "Amount", "Due", "Status"];
+  } else if (module === "documents") {
+    rows = await prisma.document.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" } });
+    columns = ["Document", "Type", "Reference", "Status", "Created"];
   } else if (module === "reports") {
     return <main className="modulePage"><header className="moduleHeader"><div><p className="eyebrow">ERP REPORTS</p><h1>Reports</h1><p className="muted">Operational reporting is connected to the same PostgreSQL records.</p></div><Link className="secondaryBtn" href="/">Dashboard</Link></header><section className="moduleCards"><div><b>Deals</b><strong>{await prisma.deal.count({where:{companyId:company.id}})}</strong><span>Total deal records</span></div><div><b>Inventory</b><strong>{await prisma.stock.count({where:{companyId:company.id}})}</strong><span>Stock records</span></div><div><b>Sales</b><strong>{await prisma.salesOrder.count({where:{companyId:company.id}})}</strong><span>Sales orders</span></div></section></main>;
   } else {
@@ -87,6 +102,12 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
             {module==="customers-and-buyers" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.email ?? "—"}</td><td>{r.creditLimit ? "₹"+Number(r.creditLimit).toLocaleString("en-IN") : "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="warehouses" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.capacity ? Number(r.capacity).toLocaleString("en-IN") : "—"}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="agreements" && <><td>{r.deal.id.slice(0,10)}</td><td>{r.side}</td><td>v{r.version}</td><td><span className="status">{r.status}</span></td><td>{r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}</td></>}
+            {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="sellers" && <><td>{r.name}</td><td>{r.category ?? "—"}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.reliability ?? "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="materials" && <><td>{r.code ?? "—"}</td><td>{r.name}</td><td>{r.grade ?? "—"}</td><td>{r.specification ?? "—"}</td><td>{r.unit}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="payments" && <><td>{r.reference}</td><td>{r.type}</td><td>{r.buyer?.name ?? r.purchase?.sellerId ?? "—"}</td><td>₹{Number(r.amount).toLocaleString("en-IN")}</td><td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
+            {module==="documents" && <><td>{r.name}</td><td>{r.type}</td><td>{r.reference ?? "—"}</td><td><span className="status">{r.status}</span></td><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td></>}
+
             {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
           </tr>)}
           {rows.length===0 && <tr><td colSpan={columns.length}>No records yet.</td></tr>}
