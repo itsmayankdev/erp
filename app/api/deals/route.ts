@@ -35,3 +35,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid deal payload", detail: error instanceof Error ? error.message : "Unknown error" }, { status: 400 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const id = String(body.id || "");
+    if (!id) return NextResponse.json({ error: "Deal id is required" }, { status: 400 });
+    const existing = await prisma.deal.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    const quantity = body.quantity !== undefined ? Number(body.quantity) : Number(existing.quantity);
+    const buyRate = body.buyRate !== undefined ? Number(body.buyRate) : Number(existing.buyRate);
+    const sellRate = body.sellRate === "" || body.sellRate === null ? null : body.sellRate !== undefined ? Number(body.sellRate) : Number(existing.sellRate ?? 0);
+    const freightCost = body.freightCost !== undefined ? Number(body.freightCost) : Number(existing.freightCost);
+    const loadingCost = body.loadingCost !== undefined ? Number(body.loadingCost) : Number(existing.loadingCost);
+    const otherCost = body.otherCost !== undefined ? Number(body.otherCost) : Number(existing.otherCost);
+    const expectedLandedCost = quantity * buyRate + freightCost + loadingCost + otherCost;
+    const expectedRevenue = sellRate === null ? null : quantity * sellRate;
+    const expectedProfit = expectedRevenue === null ? null : expectedRevenue - expectedLandedCost;
+    const expectedMargin = expectedRevenue && expectedRevenue > 0 ? (expectedProfit! / expectedRevenue) * 100 : null;
+    const allowed = ["sellerId","buyerId","materialId","quantity","buyRate","sellRate","procurementType","status","sellerCommitted","buyerCommitted","freightCost","loadingCost","otherCost"];
+    const data:any = {};
+    for (const key of allowed) if (body[key] !== undefined) data[key] = body[key];
+    data.quantity=quantity; data.buyRate=buyRate; data.sellRate=sellRate;
+    data.freightCost=freightCost; data.loadingCost=loadingCost; data.otherCost=otherCost;
+    data.expectedLandedCost=expectedLandedCost; data.expectedProfit=expectedProfit; data.expectedMargin=expectedMargin;
+    data.capitalExposure=body.sellerCommitted !== undefined ? Boolean(body.sellerCommitted) && !Boolean(body.buyerCommitted ?? existing.buyerCommitted) : existing.capitalExposure;
+    const deal=await prisma.deal.update({where:{id},data,include:{seller:true,buyer:true,material:true}});
+    return NextResponse.json(deal);
+  } catch (e) {
+    return NextResponse.json({ error: "Deal could not be updated", detail: e instanceof Error ? e.message : "Unknown error" }, { status: 400 });
+  }
+}
