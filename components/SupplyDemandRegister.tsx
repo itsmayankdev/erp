@@ -14,7 +14,8 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
   const isSupply=mode==="suppliers";
   const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
   const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
-  const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);\n  const [editMaterialOpen,setEditMaterialOpen]=useState(false),[editMaterialSearch,setEditMaterialSearch]=useState("");
+  const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);
+  const [editMaterialOpen,setEditMaterialOpen]=useState(false),[editMaterialSearch,setEditMaterialSearch]=useState("");
 
   const materialOptions=useMemo(()=>materials.map((m:any)=>typeof m==="string"?{id:m,name:m}:m).filter((m:any)=>m?.name),[materials]);
   const materialNames=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
