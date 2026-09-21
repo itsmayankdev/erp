@@ -1,0 +1,9 @@
+import { NextRequest, NextResponse } from "next/server";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { prisma } from "@/lib/prisma";
+export async function POST(req:NextRequest){
+ try{ const form=await req.formData(); const file=form.get("file"); const company=await prisma.company.findFirst({orderBy:{createdAt:"asc"}}); if(!company) return NextResponse.json({error:"Company not initialized"},{status:400}); if(!(file instanceof File)) return NextResponse.json({error:"file is required"},{status:400}); if(file.size>10*1024*1024) return NextResponse.json({error:"Maximum file size is 10 MB"},{status:400}); const allowed=["application/pdf","image/png","image/jpeg","image/webp"]; if(!allowed.includes(file.type)) return NextResponse.json({error:"Only PDF, PNG, JPG and WEBP files are supported"},{status:400});
+ const dir=path.join(process.cwd(),"public","uploads","documents"); await mkdir(dir,{recursive:true}); const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_"); const filename=Date.now()+"-"+safe; await writeFile(path.join(dir,filename),Buffer.from(await file.arrayBuffer())); const row=await prisma.document.create({data:{companyId:company.id,name:file.name,type:String(form.get("documentType")||"SUPPORTING"),reference:String(form.get("reference")||"")||null,storageKey:"/uploads/documents/"+filename,status:"Uploaded",format:file.type==="application/pdf"?"PDF":"IMAGE"}}); return NextResponse.json({ok:true,id:row.id,url:row.storageKey});
+ }catch(e){return NextResponse.json({error:"Upload failed",detail:e instanceof Error?e.message:"Unknown error"},{status:400})}
+}
