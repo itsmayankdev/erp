@@ -16,6 +16,24 @@ const money = (n: number) =>
     maximumFractionDigits: 0
   }).format(n);
 
+mport {
+  ArrowUpRight,
+  Bell,
+  ChevronRight,
+  Search
+} from "lucide-react";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+const money = (n: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0
+  }).format(n);
+
 const nav = [
   ["Overview", LayoutDashboard],
   ["Market Intelligence", PackageSearch],
@@ -35,6 +53,49 @@ export default async function Home() {
 
   if (!company) {
     return (
+      <main className="erpPage">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">STEEL TRADING ERP</p>
+            <h1>Database not initialized</h1>
+            <p className="muted">Run <code>npm run db:seed</code> after completing the Prisma migration.</p>
+          </div>
+        </header>
+      </main>
+    );
+  }
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const [
+    openDeals,
+    opportunities,
+    buyerDemands,
+    inventory,
+    receivables,
+    payables,
+    todayPurchases,
+    todaySalesAgg,
+    priorityDeals
+  ] = await Promise.all([
+    prisma.deal.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
+    prisma.opportunity.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
+    prisma.buyerDemand.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
+    prisma.stock.findMany({ where: { companyId: company.id }, select: { quantity: true, unitCost: true } }),
+    prisma.payment.aggregate({ where: { companyId: company.id, type: "Receivable", status: { not: "Paid" } }, _sum: { amount: true } }),
+    prisma.payment.aggregate({ where: { companyId: company.id, type: "Payable", status: { not: "Paid" } }, _sum: { amount: true } }),
+    prisma.purchase.aggregate({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, _sum: { quantity: true, rate: true } }),
+    prisma.salesOrder.aggregate({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, _sum: { quantity: true, rate: true } }),
+    prisma.deal.findMany({ where: { companyId: company.id, status: { not: "Closed" } }, include: { seller: true, buyer: true, material: true }, orderBy: { updatedAt: "desc" }, take: 8 })
+  ]);
+
+  const inventoryValue = inventory.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unitCost ?? 0), 0);
+  const todayPurchase = Number(todayPurchases._sum.quantity ?? 0) * Number(todayPurchases._sum.rate ?? 0);
+  const todaySales = Number(todaySalesAgg._sum.quantity ?? 0) * Number(todaySalesAgg._sum.rate ?? 0);
+  const todayProfit = todaySales - todayPurchase;
+
+  return (
     <main className="erpPage">
 
         <header className="topbar">
