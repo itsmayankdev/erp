@@ -111,9 +111,9 @@ async function main() {
     });
   }
 
-  const purchase = await prisma.purchase.findUnique({ where: { reference: "PUR-2026-0001" } });
+  let purchase = await prisma.purchase.findUnique({ where: { reference: "PUR-2026-0001" } });
   if (!purchase) {
-    await prisma.purchase.create({
+    purchase = await prisma.purchase.create({
       data: {
         companyId: company.id, dealId: deal2.id, sellerId: sellerMap["PQR Engineering"], materialId: hrCoil, warehouseId: warehouse.id,
         reference: "PUR-2026-0001", purchaseType: "Surplus / Dead Stock", quantity: 40000, rate: 40,
@@ -129,9 +129,9 @@ async function main() {
     });
   }
 
-  const sales = await prisma.salesOrder.findUnique({ where: { reference: "SO-2026-0001" } });
+  let sales = await prisma.salesOrder.findUnique({ where: { reference: "SO-2026-0001" } });
   if (!sales) {
-    await prisma.salesOrder.create({
+    sales = await prisma.salesOrder.create({
       data: {
         companyId: company.id, dealId: deal2.id, buyerId: buyerMap["Steel Consumer A"], materialId: hrCoil,
         reference: "SO-2026-0001", quantity: 25000, rate: 60, status: "Confirmed"
