@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileCheck2, PackageCheck, Truck, CreditCard, Pencil, Plus, RefreshCw } from "lucide-react";
 
 export default function DealWorkspace({deal,payments,masters}:any){
+  const router=useRouter();
   const [tab,setTab]=useState("overview");
+  const [paymentForm,setPaymentForm]=useState<{open:boolean;amount:string;type:"Receivable"|"Payable"}>({open:false,amount:"",type:"Receivable"});
+  const [receiveForm,setReceiveForm]=useState<{open:boolean;source:any;quantity:string}>({open:false,source:null,quantity:""});
   const [busy,setBusy]=useState(false);
   const [editingCommercial,setEditingCommercial]=useState(false);
   const [commercial,setCommercial]=useState({quantity:String(deal.quantity||""),buyRate:String(deal.buyRate||""),sellRate:String(deal.sellRate??""),freightCost:String(deal.freightCost||0),loadingCost:String(deal.loadingCost||0),otherCost:String(deal.otherCost||0)});
@@ -23,7 +27,7 @@ export default function DealWorkspace({deal,payments,masters}:any){
       const data=await r.json();
       if(!r.ok) throw new Error(data.detail||data.error||"Action failed");
       setMessage("Action completed successfully.");
-      setTimeout(()=>location.reload(),500);
+      router.refresh();
     }catch(e:any){setMessage(e.message)}
     finally{setBusy(false)}
   }
@@ -42,23 +46,23 @@ export default function DealWorkspace({deal,payments,masters}:any){
       })});
       const data=await response.json();
       if(!response.ok) throw new Error(data.detail||data.error||"Could not save commercial details.");
-      setEditingCommercial(false); setMessage("Commercial details updated."); setTimeout(()=>location.reload(),400);
+      setEditingCommercial(false); setMessage("Commercial details updated."); router.refresh();
     }catch(e:any){setMessage(e.message)}finally{setBusy(false)}
   }
 
-  async function createPayment(){
-    const amount=window.prompt("Payment amount");
-    if(amount===null) return;
-    const numeric=Number(amount);
+  function openPaymentForm(){ setPaymentForm({open:true,amount:"",type:"Receivable"}); }
+  async function submitPayment(){
+    const numeric=Number(paymentForm.amount);
     if(!numeric || numeric<=0) return setMessage("Enter a valid payment amount.");
-    const type=window.prompt("Payment type: Receivable or Payable","Receivable")||"Receivable";
-    const reference=(type.toUpperCase().startsWith("PAY")?"PAY-":"REC-")+Date.now();
+    const type=paymentForm.type;
+    const reference=(type==="Payable"?"PAY-":"REC-")+Date.now();
     const purchaseId=deal.purchases[0]?.id;
     const salesOrderId=deal.salesOrders[0]?.id;
+    setPaymentForm(v=>({...v,open:false}));
     await post("/api/records?module=payments",{
       buyerId:deal.buyerId||null,
-      purchaseId: type.toLowerCase().startsWith("pay") ? purchaseId : null,
-      salesOrderId: type.toLowerCase().startsWith("pay") ? null : salesOrderId,
+      purchaseId: type==="Payable" ? purchaseId : null,
+      salesOrderId: type==="Receivable" ? salesOrderId : null,
       reference,type,amount:numeric,status:"Recorded",paidAt:new Date().toISOString()
     });
   }
@@ -71,7 +75,7 @@ export default function DealWorkspace({deal,payments,masters}:any){
       const response=await fetch("/api/sales-orders/"+sale.id+"/dispatch",{method:"POST",headers:{"Content-Type":"application/json"}});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Could not dispatch the sales order.");
-      setMessage("Sales order dispatched. Central inventory and stock usage records were updated."); setTimeout(()=>location.reload(),400);
+      setMessage("Sales order dispatched. Central inventory and stock usage records were updated."); router.refresh();
     }catch(e:any){setMessage(e.message)}finally{setBusy(false)}
   }
 
@@ -88,10 +92,19 @@ export default function DealWorkspace({deal,payments,masters}:any){
     const received=(deal.purchases||[]).filter((p:any)=>p.dealSourceId===source.id&&p.status==="Received").reduce((sum:number,p:any)=>sum+Number(p.quantity||0),0);
     const remaining=Math.max(0,Number(source.quantity)-received);
     if(remaining<=0) return setMessage("This supply source is fully received.");
-    const entered=window.prompt("Receive quantity from "+(source.seller?.name||"supplier")+" (remaining "+remaining.toLocaleString("en-IN")+" "+deal.material.unit+")",String(remaining));
-    if(entered===null) return;
-    const quantity=Number(entered);
+    setReceiveForm({open:true,source,quantity:String(remaining)});
+  };
+
+  async function submitReceive(){
+    const source=receiveForm.source;
+    if(!source) return;
+    const quantity=Number(receiveForm.quantity);
+    const received=(deal.purchases||[]).filter((p:any)=>p.dealSourceId===source.id&&p.status==="Received").reduce((sum:number,p:any)=>sum+Number(p.quantity||0),0);
+    const remaining=Math.max(0,Number(source.quantity)-received);
     if(!quantity||quantity<=0||quantity>remaining) return setMessage("Enter a quantity between 1 and "+remaining.toLocaleString("en-IN")+".");
+    const warehouse=masters.warehouses[0];
+    if(!warehouse) return setMessage("Create a warehouse first.");
+    setReceiveForm({open:false,source:null,quantity:""});
     await post("/api/purchases",{
       companyId:deal.companyId,dealId:deal.id,dealSourceId:source.id,
       sellerId:source.sellerId,materialId:deal.materialId,warehouseId:warehouse.id,
@@ -106,6 +119,24 @@ export default function DealWorkspace({deal,payments,masters}:any){
   };
 
   return <div className="workspace">
+    {paymentForm.open&&<div className="modalBackdrop" onMouseDown={()=>setPaymentForm(v=>({...v,open:false}))}>
+      <div className="recordModal" onMouseDown={e=>e.stopPropagation()}>
+        <div className="modalHead"><div><p className="eyebrow">PAYMENT</p><h2>Record payment</h2></div><button className="modalClose" onClick={()=>setPaymentForm(v=>({...v,open:false}))}>×</button></div>
+        <div className="formGrid">
+          <label>Payment type<select value={paymentForm.type} onChange={e=>setPaymentForm(v=>({...v,type:e.target.value as "Receivable"|"Payable"}))}><option value="Receivable">Receivable — money from buyer</option><option value="Payable">Payable — money to supplier</option></select></label>
+          <label>Amount (₹)<input autoFocus type="number" min="0" value={paymentForm.amount} onChange={e=>setPaymentForm(v=>({...v,amount:e.target.value}))} placeholder="Enter amount"/></label>
+        </div>
+        <div className="modalFoot"><button className="secondaryBtn" onClick={()=>setPaymentForm(v=>({...v,open:false}))}>Cancel</button><button className="saveBtn" onClick={submitPayment} disabled={busy}>Record payment</button></div>
+      </div>
+    </div>}
+    {receiveForm.open&&<div className="modalBackdrop" onMouseDown={()=>setReceiveForm(v=>({...v,open:false}))}>
+      <div className="recordModal" onMouseDown={e=>e.stopPropagation()}>
+        <div className="modalHead"><div><p className="eyebrow">PROCUREMENT</p><h2>Receive stock</h2><p className="muted">{receiveForm.source?.seller?.name||"Supplier"} · {receiveForm.source?.location||"Location not set"}</p></div><button className="modalClose" onClick={()=>setReceiveForm(v=>({...v,open:false}))}>×</button></div>
+        <div className="formGrid"><label>Quantity ({deal.material.unit})<input autoFocus type="number" min="1" value={receiveForm.quantity} onChange={e=>setReceiveForm(v=>({...v,quantity:e.target.value}))}/></label></div>
+        <div className="modalFoot"><button className="secondaryBtn" onClick={()=>setReceiveForm(v=>({...v,open:false}))}>Cancel</button><button className="saveBtn" onClick={submitReceive} disabled={busy}>Receive stock</button></div>
+      </div>
+    </div>}
+
     <section className="dealSummary">
       <div><span>STATUS</span><strong>{deal.status}</strong></div>
       <div><span>QUANTITY</span><strong>{qty.toLocaleString("en-IN")} {deal.material.unit}</strong></div>
@@ -174,7 +205,7 @@ export default function DealWorkspace({deal,payments,masters}:any){
 
       {tab==="sales"&&<ActionSection title="Sales & dispatch" icon={<Truck size={16}/>} actions={<><button onClick={createSale} disabled={busy}><Plus size={14}/> Create Sales Order</button><button onClick={dispatchLatestSale} disabled={busy || !deal.salesOrders.length}><Truck size={14}/> Dispatch</button></>}><DataTable rows={deal.salesOrders} cols={["reference","quantity","rate","status","dispatchDate"]}/></ActionSection>}
 
-      {tab==="payments"&&<ActionSection title="Payments" icon={<CreditCard size={16}/>} actions={<button onClick={createPayment} disabled={busy}><Plus size={14}/> Record Payment</button>}><DataTable rows={payments} cols={["reference","type","amount","dueDate","status"]}/></ActionSection>}
+      {tab==="payments"&&<ActionSection title="Payments" icon={<CreditCard size={16}/>} actions={<button onClick={openPaymentForm} disabled={busy}><Plus size={14}/> Record Payment</button>}><DataTable rows={payments} cols={["reference","type","amount","dueDate","status"]}/></ActionSection>}
 
       {tab==="activity"&&<ActionSection title="Deal activity"><div className="activityLine"><span>Deal created</span><small>{new Date(deal.createdAt).toLocaleString("en-IN")}</small></div><div className="activityLine"><span>Last updated</span><small>{new Date(deal.updatedAt).toLocaleString("en-IN")}</small></div></ActionSection>}
     </section>
