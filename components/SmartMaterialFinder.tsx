@@ -22,6 +22,7 @@ export default function SmartMaterialFinder({materials,buyers}:any){
     if(quantity)params.set("quantity",quantity);
     if(location)params.set("location",location);
     if(maxRate)params.set("maxRate",maxRate);
+    if(buyerId)params.set("buyerId",buyerId);
     const r=await fetch("/api/smart-finder?"+params.toString());
     const d=await r.json();
     setResults(d.results||[]);
@@ -44,7 +45,7 @@ export default function SmartMaterialFinder({materials,buyers}:any){
       <button className="finderButton" onClick={search} disabled={loading}><Search size={15}/>{loading?"Searching...":"Find Matching Supply"}</button>
     </section>
 
-    {summary&&<section className="finderStats"><div><span>Matches</span><b>{summary.matches}</b></div><div><span>Total available</span><b>{Number(summary.totalAvailable).toLocaleString("en-IN")}</b></div><div><span>Lowest rate</span><b>{summary.lowestRate?"₹"+Number(summary.lowestRate).toLocaleString("en-IN"):"—"}</b></div><div><span>Potential combinations</span><b>{summary.combinations}</b></div></section>}
+    {summary&&<section className="finderStats"><div><span>Matches</span><b>{summary.matches}</b></div>{summary.buyerDemand&&<div className="finderContext"><span>BUYER DEMAND</span><b>Linked</b><small>{summary.requestedQuantity?.toLocaleString("en-IN")} required</small></div>}<div><span>Total available</span><b>{Number(summary.totalAvailable).toLocaleString("en-IN")}</b></div><div><span>Lowest rate</span><b>{summary.lowestRate?"₹"+Number(summary.lowestRate).toLocaleString("en-IN"):"—"}</b></div><div><span>Potential combinations</span><b>{summary.combinations}</b></div></section>}
 
     <section className="finderResults">
       <div className="finderResultsHead"><div><h3>Matching supply</h3><p>{selected?selected.name:"All known materials"} · ranked by material, quantity, location and price fit</p></div><SlidersHorizontal size={16}/></div>
