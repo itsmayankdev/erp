@@ -13,7 +13,7 @@ model Company {
   code            String          @unique
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  sellers         Seller[]
+  sellers         Seller[] 
   buyers          Buyer[]
   materials       Material[]
   deals           Deal[]
@@ -31,7 +31,6 @@ model Company {
   priceIntel      PriceIntelligence[]
   auditLogs       AuditLog[]
   dealSources     DealSource[]
-  stockAllocations StockAllocation[]
 }
 
 model User {
@@ -67,7 +66,7 @@ model Buyer {
   id          String        @id @default(cuid())
   companyId   String
   name        String
-  phone       String?
+  phone        String?
   email       String?
   city        String?
   creditLimit Decimal?      @db.Decimal(18,2)
@@ -193,7 +192,7 @@ model Deal {
   company           Company       @relation(fields: [companyId], references: [id])
   opportunity       Opportunity?  @relation(fields: [opportunityId], references: [id])
   demand            BuyerDemand?  @relation(fields: [demandId], references: [id])
-  seller             Seller        @relation(fields: [sellerId], references: [id])
+  seller             Seller        @relation(fields: [sellerId], references: [sellerId])
   buyer              Buyer?        @relation(fields: [buyerId], references: [id])
   material           Material      @relation(fields: [materialId], references: [id])
   stocks             Stock[]
@@ -312,7 +311,7 @@ model Document {
   name        String
   type        String
   reference   String?
-  storageKey  String
+  storageKey   String
   status      String   @default("Pending")
   uploadedBy  String?
   createdAt   DateTime @default(now())
@@ -337,16 +336,15 @@ model AuditLog {
   id        String   @id @default(cuid())
   companyId String
   userId    String?
-  action    String
-  entity    String
-  entityId  String?
+  action     String
+  entity     String
+  entityId   String?
   before    Json?
   after     Json?
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
   company   Company  @relation(fields: [companyId], references: [id])
   user      User?    @relation(fields: [userId], references: [id])
 }
-
 
 model DealSource {
   id            String      @id @default(cuid())
