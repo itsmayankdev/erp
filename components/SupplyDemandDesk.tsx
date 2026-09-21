@@ -9,7 +9,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
  const [newParty,setNewParty]=useState(false),[partyName,setPartyName]=useState(""),[partyPhone,setPartyPhone]=useState(""),[partyEmail,setPartyEmail]=useState(""),[partyCity,setPartyCity]=useState("");
  const [newPartyMode,setNewPartyMode]=useState(false);
  const [newMaterial,setNewMaterial]=useState(false),[materialName,setMaterialName]=useState(""),[materialGrade,setMaterialGrade]=useState(""),[materialSpec,setMaterialSpec]=useState(""),[materialUnit,setMaterialUnit]=useState("KG");
- const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:"",grade:"",specification:""});
+ const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});\n const [gradeValue,setGradeValue]=useState("");\n const [specValue,setSpecValue]=useState("");
  const [saving,setSaving]=useState(false),[saved,setSaved]=useState("");
  const [partySearch,setPartySearch]=useState(""),[materialSearch,setMaterialSearch]=useState("");
  const [partyOpen,setPartyOpen]=useState(false),[materialOpen,setMaterialOpen]=useState(false);
@@ -21,8 +21,8 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(tab==="supply"){setSellerId(id);const x=sellers.find((a:any)=>a.id===id);if(x)setForm((f:any)=>({...f,location:f.location||x.city||""}));}
   else setBuyerId(id);
  }
- function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x){setMaterialSearch(x.name);setForm((f:any)=>({...f,unit:x.unit||"KG",grade:x.grade||"",specification:x.specification||""}));}setMaterialOpen(false);}
- function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialSearch("");setMaterialOpen(false);setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG",grade:"",specification:""}));}
+ function chooseMaterial(id:string){setMaterialId(id);setNewMaterial(false);const x=materials.find((a:any)=>a.id===id);if(x){setMaterialSearch(x.name);setForm((f:any)=>({...f,unit:x.unit||"KG"}));setGradeValue(x.grade||"");setSpecValue(x.specification||"");setGradeValue(x.grade||"");setSpecValue(x.specification||"");}setMaterialOpen(false);}
+ function startNewMaterial(){setNewMaterial(true);setMaterialId("");setMaterialSearch("");setMaterialOpen(false);setMaterialName("");setMaterialGrade("");setMaterialSpec("");setMaterialUnit("KG");setForm((f:any)=>({...f,unit:"KG"}));setGradeValue("");setSpecValue("");}
  async function addMaterial(){
   if(!materialName.trim())return;
   const r=await fetch("/api/records?module=materials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:materialName,grade:materialGrade,specification:materialSpec,unit:materialUnit||"KG"})});
@@ -46,7 +46,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(!materialId||(!sellerId&&tab==="supply")||(!buyerId&&tab==="demand")||!form.quantity)return alert("Please select the company, material and quantity.");
   setSaving(true);
   const body=tab==="supply"
-   ?{sellerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:form.grade||null,specification:form.specification||null,askingRate:form.askingRate?Number(form.askingRate):null,estimatedMarketRate:form.marketRate?Number(form.marketRate):null,sourceType:form.sourceType,status:form.status,location:form.location,notes:form.notes}
+   ?{sellerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:gradeValue||null,specification:specValue||null,askingRate:form.askingRate?Number(form.askingRate):null,estimatedMarketRate:form.marketRate?Number(form.marketRate):null,sourceType:form.sourceType,status:form.status,location:form.location,notes:form.notes}
    :{buyerId,materialId,quantity:Number(form.quantity),unit:form.unit||selectedMaterial?.unit||"KG",grade:form.grade||null,specification:form.specification||null,targetRate:form.targetRate?Number(form.targetRate):null,requiredBy:form.requiredBy||null,location:form.location,status:form.status,notes:form.notes};
   const r=await fetch("/api/records?module="+(tab==="supply"?"opportunities":"buyer-demands"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok){alert((await r.json()).error||"Unable to save");setSaving(false);return;}
@@ -69,8 +69,8 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
     <div className="sdSection"><div className="sdSectionTitle"><b>Material details</b><span>Existing master data auto-fills the known specification.</span></div>
       <div className="sdGrid">
        <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<div className="smartSelect"><input value={materialSearch} onFocus={()=>setMaterialOpen(true)} onChange={e=>{setMaterialSearch(e.target.value);setMaterialOpen(true);}} placeholder="Type to search material..." />{materialOpen&&<div className="smartOptions">{materials.filter((x:any)=>`${x.name} ${x.grade||""} ${x.specification||""}`.toLowerCase().includes(materialSearch.toLowerCase())).slice(0,30).map((x:any)=><button type="button" key={x.id} onMouseDown={e=>e.preventDefault()} onClick={()=>chooseMaterial(x.id)}><b>{x.name}</b><small>{[x.grade,x.specification].filter(Boolean).join(" · ")||x.unit||"KG"}</small></button>)}<button type="button" className="smartAdd" onMouseDown={e=>e.preventDefault()} onClick={startNewMaterial}><Plus size={12}/> Add new material</button>{!materials.some((x:any)=>`${x.name} ${x.grade||""} ${x.specification||""}`.toLowerCase().includes(materialSearch.toLowerCase()))&&<span className="smartEmpty">No matching material</span>}</div>}</div>}</label>
-       <label>Grade<input type="text" value={newMaterial?materialGrade:(form.grade ?? "")} disabled={false} readOnly={false} onChange={e=>newMaterial?setMaterialGrade(e.target.value):setForm((f:any)=>({...f,grade:e.target.value}))} placeholder={newMaterial?"e.g. IS 513":"Auto-filled — click and edit"}/></label>
-       <label>Specification<input type="text" value={newMaterial?materialSpec:(form.specification ?? "")} disabled={false} readOnly={false} onChange={e=>newMaterial?setMaterialSpec(e.target.value):setForm((f:any)=>({...f,specification:e.target.value}))} placeholder={newMaterial?"e.g. 0.8mm x 1250mm":"Auto-filled — click and edit"}/></label>
+       <label>Grade<input type="text" value={newMaterial?materialGrade:gradeValue} onChange={e=>newMaterial?setMaterialGrade(e.target.value):setGradeValue(e.target.value)} placeholder={newMaterial?"e.g. IS 513":"Auto-filled — editable for this record"}/></label>
+       <label>Specification<input type="text" value={newMaterial?materialSpec:specValue} onChange={e=>newMaterial?setMaterialSpec(e.target.value):setSpecValue(e.target.value)} placeholder={newMaterial?"e.g. 0.8mm x 1250mm":"Auto-filled — editable for this record"}/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
       </div>
       {newMaterial&&<div className="inlineActions materialActions"><button onClick={()=>setNewMaterial(false)}>Cancel</button><button className="saveBtn" onClick={addMaterial} disabled={!materialName.trim()}><Plus size={13}/> Save material</button></div>}
