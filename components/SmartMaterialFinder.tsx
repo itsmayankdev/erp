@@ -18,7 +18,8 @@ export default function SmartMaterialFinder({materials,buyers,demands}:any){
  async function search(){
   setLoading(true);setSelected(null);
   const p=new URLSearchParams(); if(materialId)p.set("materialId",materialId);if(query)p.set("q",query);if(quantity)p.set("quantity",quantity);if(location)p.set("location",location);if(maxRate)p.set("maxRate",maxRate);if(buyerId)p.set("buyerId",buyerId);if(demandId)p.set("demandId",demandId);
-  const r=await fetch("/api/smart-finder?"+p);const d=await r.json();const rs=d.results||[];setResults(rs);setSummary(d.summary||null);setLoading(false);\n  const need=Number(d.summary?.requestedQuantity||0); let left=need; const plan:any[]=[]; const supplyForPlan=rs.filter((x:any)=>x.opportunityId).slice().sort((a:any,b:any)=>(a.rate??999999)-(b.rate??999999)); for(const x of supplyForPlan){if(left<=0)break; if(!x.opportunityId)continue; const take=Math.min(left,Number(x.quantity)); if(take>0){plan.push({...x,allocatedQuantity:take});left-=take;}} setAllocation(plan);
+  const r=await fetch("/api/smart-finder?"+p);const d=await r.json();const rs=d.results||[];setResults(rs);setSummary(d.summary||null);setLoading(false);
+  const need=Number(d.summary?.requestedQuantity||0); let left=need; const plan:any[]=[]; const supplyForPlan=rs.filter((x:any)=>x.opportunityId).slice().sort((a:any,b:any)=>(a.rate??999999)-(b.rate??999999)); for(const x of supplyForPlan){if(left<=0)break; if(!x.opportunityId)continue; const take=Math.min(left,Number(x.quantity)); if(take>0){plan.push({...x,allocatedQuantity:take});left-=take;}} setAllocation(plan);
  }
  async function createDeal(){
   if(!selected?.opportunityId||!demandId)return alert("Select a supplier opportunity and a buyer requirement first.");
