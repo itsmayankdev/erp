@@ -9,7 +9,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
     const doc=await prisma.document.findUnique({where:{id}});
     if(!doc) return NextResponse.json({error:"Document not found"},{status:404});
     const filename=path.basename(doc.storageKey);
-    const file=await readFile(path.join(process.cwd(),"public","generated-documents",filename));
+    const relative=doc.storageKey.replace(/^\/+/,""); const file=await readFile(path.join(process.cwd(),"public",relative));
     const contentType=doc.format==="PDF"?"application/pdf":"image/svg+xml";
     return new NextResponse(file,{headers:{"Content-Type":contentType,"Content-Disposition":`inline; filename="${filename}"`,"Cache-Control":"no-store"}});
   }catch(e){
