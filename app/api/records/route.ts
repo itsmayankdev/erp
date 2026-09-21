@@ -52,7 +52,13 @@ export async function POST(req:NextRequest) {
   try {
     const record=await (prisma as any)[model].create({data:{...body,companyId:company.id}});
     return NextResponse.json(record,{status:201});
-  } catch(e:any) { return NextResponse.json({error:e?.message||"Unable to create record"},{status:400}); }
+  } catch(e:any) {
+    const message = e?.message || "Unable to create record";
+    if (message.includes("Unknown argument") && (message.includes("grade") || message.includes("specification"))) {
+      return NextResponse.json({error:"ERP database/client is out of sync with the current schema. Run \`npm run db:sync\` in Codespaces, then restart \`npm run dev\`."},{status:500});
+    }
+    return NextResponse.json({error:message},{status:400});
+  }
 }
 
 export async function PATCH(req:NextRequest) {
