@@ -10,6 +10,9 @@ const configs:any={
   opportunities:[["sellerId","Seller","select","sellers"],["materialId","Material","select","materials"],["quantity","Quantity","number"],["unit","Unit","text"],["askingRate","Asking Rate","number"],["estimatedMarketRate","Market Rate","number"],["sourceType","Source Type","text"],["status","Status","text"],["location","Location","text"],["notes","Notes","text"]],
   "customers-and-buyers":[["name","Company","text"],["phone","Phone","text"],["email","Email","text"],["city","City","text"],["creditLimit","Credit Limit","number"]],
   warehouses:[["name","Warehouse","text"],["city","City","text"],["capacity","Capacity","number"]],
+  "buyer-demands":[["buyerId","Buyer","select","buyers"],["materialId","Material","select","materials"],["quantity","Quantity","number"],["unit","Unit","text"],["targetRate","Target Rate","number"],["requiredBy","Required By","date"],["location","Location","text"],["status","Status","text"],["notes","Notes","text"]],
+  sellers:[["name","Supplier","text"],["phone","Phone","text"],["email","Email","text"],["city","City","text"],["category","Category","text"],["reliability","Reliability","text"]],
+  materials:[["code","Code","text"],["name","Material","text"],["grade","Grade","text"],["specification","Specification","text"],["unit","Unit","text"]],
   deals:[["sellerId","Seller","select","sellers"],["buyerId","Buyer","select","buyers"],["materialId","Material","select","materials"],["quantity","Quantity","number"],["buyRate","Buy Rate","number"],["sellRate","Sell Rate","number"],["procurementType","Procurement Type","text"],["status","Status","text"]]
 };
 
