@@ -25,6 +25,25 @@ async function main() {
     materialMap[code] = m.id;
   }
 
+  // Remove legacy demo-only seller left by the early UI prototype.
+  const legacySeller = await prisma.seller.findFirst({ where: { companyId: company.id, name: "Demo" } });
+  if (legacySeller) {
+    const legacyDeals = await prisma.deal.findMany({ where: { companyId: company.id, sellerId: legacySeller.id }, select: { id: true } });
+    const legacyDealIds = legacyDeals.map(d => d.id);
+    const legacyPurchases = await prisma.purchase.findMany({ where: { companyId: company.id, sellerId: legacySeller.id }, select: { id: true } });
+    const legacyPurchaseIds = legacyPurchases.map(p => p.id);
+    const legacySales = await prisma.salesOrder.findMany({ where: { companyId: company.id, dealId: { in: legacyDealIds } }, select: { id: true } });
+    const legacySalesIds = legacySales.map(s => s.id);
+    await prisma.payment.deleteMany({ where: { companyId: company.id, purchaseId: { in: legacyPurchaseIds } } });
+    await prisma.payment.deleteMany({ where: { companyId: company.id, salesOrderId: { in: legacySalesIds } } });
+    await prisma.agreement.deleteMany({ where: { companyId: company.id, dealId: { in: legacyDealIds } } });
+    await prisma.stock.deleteMany({ where: { companyId: company.id, dealId: { in: legacyDealIds } } });
+    await prisma.salesOrder.deleteMany({ where: { companyId: company.id, dealId: { in: legacyDealIds } } });
+    await prisma.purchase.deleteMany({ where: { companyId: company.id, sellerId: legacySeller.id } });
+    await prisma.opportunity.deleteMany({ where: { companyId: company.id, sellerId: legacySeller.id } });
+    await prisma.deal.deleteMany({ where: { companyId: company.id, sellerId: legacySeller.id } });
+    await prisma.seller.delete({ where: { id: legacySeller.id } });
+  }
   const sellerNames = ["ABC Steel Ltd.","PQR Engineering","Steel Supplier A","Factory Source"];
   const sellerMap: Record<string,string> = {};
   for (const name of sellerNames) {
