@@ -25,6 +25,8 @@ export default function RecordActions({module,row,mode="add"}:Props){
   useEffect(()=>{if(open) setForm(row?{...row}:{});},[open,row]);
   const submit=async()=>{
     const payload:any={...form};
+    for(const key of ["seller","buyer","material","warehouse","opportunity","demand","agreements","purchases","salesOrders","stocks","company"]) delete payload[key];
+    if(payload.id===undefined && row?.id) payload.id=row.id;
     let url="/api/records?module="+module;
     if(module==="deals"){payload.companyId=master.companyId;url="/api/deals";}
     const res=await fetch(url,{method:mode==="edit"?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
