@@ -29,10 +29,7 @@ export default function SmartMaterialFinder({
   const [quantity, setQuantity] = useState("");
   const [location, setLocation] = useState("");
   const [maxRate, setMaxRate] = useState("");
-  const [ignoreQuery, setIgnoreQuery] = useState(false);
-  const [ignoreQuantity, setIgnoreQuantity] = useState(false);
-  const [ignoreLocation, setIgnoreLocation] = useState(false);
-  const [ignoreMaxRate, setIgnoreMaxRate] = useState(false);
+  const [ignoreFilters, setIgnoreFilters] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -58,10 +55,7 @@ export default function SmartMaterialFinder({
       demand.targetRate ? String(Number(demand.targetRate)) : ""
     );
     setLocation(demand.location || "");
-    setIgnoreQuery(false);
-    setIgnoreQuantity(false);
-    setIgnoreLocation(false);
-    setIgnoreMaxRate(false);
+    setIgnoreFilters(false);
     setQuery(
       [
         demand.material?.name,
@@ -87,10 +81,12 @@ export default function SmartMaterialFinder({
       const params = new URLSearchParams();
 
       if (materialId) params.set("materialId", materialId);
-      if (!ignoreQuery && query) params.set("q", query);
-      if (!ignoreQuantity && quantity) params.set("quantity", quantity);
-      if (!ignoreLocation && location) params.set("location", location);
-      if (!ignoreMaxRate && maxRate) params.set("maxRate", maxRate);
+      if (!ignoreFilters) {
+        if (query) params.set("q", query);
+        if (quantity) params.set("quantity", quantity);
+        if (location) params.set("location", location);
+        if (maxRate) params.set("maxRate", maxRate);
+      }
       if (buyerId) params.set("buyerId", buyerId);
       if (demandId) params.set("demandId", demandId);
 
@@ -244,19 +240,37 @@ export default function SmartMaterialFinder({
           </div>
         </div>
 
+        <div className="finderCommonFilter">
+          <label className="finderCommonToggle">
+            <input
+              type="checkbox"
+              checked={ignoreFilters}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setIgnoreFilters(checked);
+                if (checked) {
+                  setQuery("");
+                  setQuantity("");
+                  setLocation("");
+                  setMaxRate("");
+                }
+              }}
+            />
+            <span>
+              <b>Not required</b>
+              <small>Ignore material details, quantity, location &amp; max rate</small>
+            </span>
+          </label>
+        </div>
+
         <div className="finderGrid">
           <label>
             Buyer requirement
-            <select
-              value={demandId}
-              onChange={(event) => chooseDemand(event.target.value)}
-            >
+            <select value={demandId} onChange={(event) => chooseDemand(event.target.value)}>
               <option value="">Select a saved requirement...</option>
               {demands.map((demand: any) => (
                 <option key={demand.id} value={demand.id}>
-                  {demand.buyer.name} · {demand.material.name} ·{" "}
-                  {Number(demand.quantity).toLocaleString("en-IN")}{" "}
-                  {demand.unit}
+                  {demand.buyer.name} · {demand.material.name} · {Number(demand.quantity).toLocaleString("en-IN")} {demand.unit}
                 </option>
               ))}
             </select>
@@ -264,150 +278,53 @@ export default function SmartMaterialFinder({
 
           <label>
             Buyer
-            <select
-              value={buyerId}
-              onChange={(event) => chooseBuyer(event.target.value)}
-            >
+            <select value={buyerId} onChange={(event) => chooseBuyer(event.target.value)}>
               <option value="">Any buyer</option>
               {buyers.map((buyer: any) => (
-                <option key={buyer.id} value={buyer.id}>
-                  {buyer.name}
-                </option>
+                <option key={buyer.id} value={buyer.id}>{buyer.name}</option>
               ))}
             </select>
           </label>
 
           <label>
             Material
-            <select
-              value={materialId}
-              onChange={(event) => setMaterialId(event.target.value)}
-            >
+            <select value={materialId} onChange={(event) => setMaterialId(event.target.value)}>
               <option value="">Any material</option>
               {materials.map((material: any) => (
                 <option key={material.id} value={material.id}>
-                  {material.name}
-                  {material.grade ? " · " + material.grade : ""}
+                  {material.name}{material.grade ? " · " + material.grade : ""}
                 </option>
               ))}
             </select>
           </label>
 
-          <label className="finderFilterField">
-            <span className="finderFilterLabel">
-              <span>Material / size / specification</span>
-              <label className="finderOptional">
-                <input
-                  type="checkbox"
-                  checked={ignoreQuery}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setIgnoreQuery(checked);
-                    if (checked) setQuery("");
-                  }}
-                />
-                Not required
-              </label>
-            </span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={ignoreQuery ? "Filter disabled" : "e.g. HR Coil 2mm 1250"}
-              disabled={ignoreQuery}
-            />
+          <label>
+            Material / size / specification
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={ignoreFilters ? "Not required" : "e.g. HR Coil 2mm 1250"} disabled={ignoreFilters} />
           </label>
 
-          <label className="finderFilterField">
-            <span className="finderFilterLabel">
-              <span>Required quantity</span>
-              <label className="finderOptional">
-                <input
-                  type="checkbox"
-                  checked={ignoreQuantity}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setIgnoreQuantity(checked);
-                    if (checked) setQuantity("");
-                  }}
-                />
-                Not required
-              </label>
-            </span>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder={ignoreQuantity ? "Filter disabled" : "e.g. 50000"}
-              disabled={ignoreQuantity}
-            />
+          <label>
+            Required quantity
+            <input type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder={ignoreFilters ? "Not required" : "e.g. 50000"} disabled={ignoreFilters} />
           </label>
 
-          <label className="finderFilterField">
-            <span className="finderFilterLabel">
-              <span>Location</span>
-              <label className="finderOptional">
-                <input
-                  type="checkbox"
-                  checked={ignoreLocation}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setIgnoreLocation(checked);
-                    if (checked) setLocation("");
-                  }}
-                />
-                Not required
-              </label>
-            </span>
-            <input
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder={ignoreLocation ? "Filter disabled" : "Delhi / Faridabad / Bawal"}
-              disabled={ignoreLocation}
-            />
+          <label>
+            Location
+            <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder={ignoreFilters ? "Not required" : "Delhi / Faridabad / Bawal"} disabled={ignoreFilters} />
           </label>
 
-          <label className="finderFilterField">
-            <span className="finderFilterLabel">
-              <span>Maximum buy rate</span>
-              <label className="finderOptional">
-                <input
-                  type="checkbox"
-                  checked={ignoreMaxRate}
-                  onChange={(event) => {
-                    const checked = event.target.checked;
-                    setIgnoreMaxRate(checked);
-                    if (checked) setMaxRate("");
-                  }}
-                />
-                Not required
-              </label>
-            </span>
-            <input
-              type="number"
-              value={maxRate}
-              onChange={(event) => setMaxRate(event.target.value)}
-              placeholder={ignoreMaxRate ? "Filter disabled" : "Optional ₹/unit"}
-              disabled={ignoreMaxRate}
-            />
+          <label>
+            Maximum buy rate
+            <input type="number" value={maxRate} onChange={(event) => setMaxRate(event.target.value)} placeholder={ignoreFilters ? "Not required" : "Optional ₹/unit"} disabled={ignoreFilters} />
           </label>
 
           <label>
             Saved requirements for buyer
-            <select
-              value=""
-              onChange={(event) => chooseDemand(event.target.value)}
-              disabled={!buyerId}
-            >
-              <option value="">
-                {buyerId
-                  ? "Select another requirement..."
-                  : "Select buyer first"}
-              </option>
+            <select value="" onChange={(event) => chooseDemand(event.target.value)} disabled={!buyerId}>
+              <option value="">{buyerId ? "Select another requirement..." : "Select buyer first"}</option>
               {buyerDemands.map((demand: any) => (
                 <option key={demand.id} value={demand.id}>
-                  {demand.material.name} ·{" "}
-                  {Number(demand.quantity).toLocaleString("en-IN")}{" "}
-                  {demand.unit}
+                  {demand.material.name} · {Number(demand.quantity).toLocaleString("en-IN")} {demand.unit}
                 </option>
               ))}
             </select>
