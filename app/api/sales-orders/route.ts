@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const order = await prisma.$transaction(async tx => {
       const stock = await tx.stock.findFirst({
         where: { companyId: body.companyId, materialId: body.materialId, status: { in: ["Available", "Reserved"] },
-          quantity: { gt: body.quantity } },
+          quantity: { gte: body.quantity } },
         orderBy: { createdAt: "asc" }
       });
       if (!stock || Number(stock.quantity) - Number(stock.reservedQty) < body.quantity) throw new Error("Insufficient available stock for this material");
