@@ -1,62 +1,567 @@
 "use client";
+
 import { useState } from "react";
-import { Search, SlidersHorizontal, ArrowRight, Package, MapPin, CheckCircle2, X } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  ArrowRight,
+  Package,
+  MapPin,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 
-export default function SmartMaterialFinder({materials,buyers,demands}:any){
- const [materialId,setMaterialId]=useState(""),[buyerId,setBuyerId]=useState(""),[demandId,setDemandId]=useState("");
- const [query,setQuery]=useState(""),[quantity,setQuantity]=useState(""),[location,setLocation]=useState(""),[maxRate,setMaxRate]=useState("");
- const [results,setResults]=useState<any[]>([]),[summary,setSummary]=useState<any>(null),[loading,setLoading]=useState(false),[selected,setSelected]=useState<any>(null),[working,setWorking]=useState(false),[allocation,setAllocation]=useState<any[]>([]);
- const buyerDemands=demands.filter((d:any)=>!buyerId||d.buyerId===buyerId);
- const selectedMaterial=materials.find((m:any)=>m.id===materialId);
- const selectedDemand=demands.find((d:any)=>d.id===demandId);
+type FinderProps = {
+  materials: any[];
+  buyers: any[];
+  demands: any[];
+};
 
- function chooseDemand(id:string){
-  setDemandId(id); const d=demands.find((x:any)=>x.id===id); if(!d)return;
-  setBuyerId(d.buyerId); setMaterialId(d.materialId); setQuantity(String(Number(d.quantity))); setMaxRate(d.targetRate?String(Number(d.targetRate)):""); setLocation(d.location||""); setQuery([d.material?.name,d.material?.grade,d.material?.specification,d.notes].filter(Boolean).join(" "));
- }
- function chooseBuyer(id:string){setBuyerId(id);setDemandId("");}
- async function search(){
-  setLoading(true);setSelected(null);
-  const p=new URLSearchParams(); if(materialId)p.set("materialId",materialId);if(query)p.set("q",query);if(quantity)p.set("quantity",quantity);if(location)p.set("location",location);if(maxRate)p.set("maxRate",maxRate);if(buyerId)p.set("buyerId",buyerId);if(demandId)p.set("demandId",demandId);
-  const r=await fetch("/api/smart-finder?"+p);const d=await r.json();const rs=d.results||[];setResults(rs);setSummary(d.summary||null);setLoading(false);
-  const need=Number(d.summary?.requestedQuantity||0); let left=need; const plan:any[]=[]; const supplyForPlan=rs.filter((x:any)=>x.opportunityId).slice().sort((a:any,b:any)=>(a.rate??999999)-(b.rate??999999)); for(const x of supplyForPlan){if(left<=0)break; if(!x.opportunityId)continue; const take=Math.min(left,Number(x.quantity)); if(take>0){plan.push({...x,allocatedQuantity:take});left-=take;}} setAllocation(plan);
- }
- async function createDeal(){
-  if(!selected?.opportunityId||!demandId)return alert("Select a supplier opportunity and a buyer requirement first.");
-  setWorking(true);
-  const r=await fetch("/api/workflows/convert-to-deal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({opportunityId:selected.opportunityId,demandId})});
-  const d=await r.json();setWorking(false);
-  if(!r.ok)return alert(d.error||"Could not create deal.");
-  window.location.href="/deals/"+d.deal.id;
- }
- return <div className="finder">
-  <section className="finderSearch">
-   <div className="finderTitle"><div><span className="eyebrow">SUPPLY MATCHING ENGINE</span><h2>Find supply for a buyer requirement</h2><p>Select an existing buyer requirement and the ERP will pre-fill the material, quantity, target price and location.</p></div><div className="finderIcon"><Search size={19}/></div></div>
-   <div className="finderGrid">
-    <label>Buyer requirement<select value={demandId} onChange={e=>chooseDemand(e.target.value)}><option value="">Select a saved requirement...</option>{demands.map((d:any)=><option key={d.id} value={d.id}>{d.buyer.name} · {d.material.name} · {Number(d.quantity).toLocaleString("en-IN")} {d.unit}</option>)}</select></label>
-    <label>Buyer<select value={buyerId} onChange={e=>chooseBuyer(e.target.value)}><option value="">Any buyer</option>{buyers.map((b:any)=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>
-    <label>Material<select value={materialId} onChange={e=>setMaterialId(e.target.value)}><option value="">Any material</option>{materials.map((m:any)=><option key={m.id} value={m.id}>{m.name}{m.grade?" · "+m.grade:""}</option>)}</select></label>
-    <label>Material / size / specification<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="e.g. HR Coil 2mm 1250"/></label>
-    <label>Required quantity<input type="number" value={quantity} onChange={e=>setQuantity(e.target.value)} placeholder="e.g. 50000"/></label>
-    <label>Location<input value={location} onChange={e=>setLocation(e.target.value)} placeholder="Delhi / Faridabad / Bawal"/></label>
-    <label>Maximum buy rate<input type="number" value={maxRate} onChange={e=>setMaxRate(e.target.value)} placeholder="Optional ₹/unit"/></label>
-    <label>Saved requirements for buyer<select value="" onChange={e=>chooseDemand(e.target.value)} disabled={!buyerId}><option value="">{buyerId?"Select another requirement...":"Select buyer first"}</option>{buyerDemands.map((d:any)=><option key={d.id} value={d.id}>{d.material.name} · {Number(d.quantity).toLocaleString("en-IN")} {d.unit}</option>)}</select></label>
-   </div>
-   <button className="finderButton" onClick={search} disabled={loading}><Search size={15}/>{loading?"Searching...":"Find Matching Supply"}</button>
-  </section>
-  {summary&&<section className="finderStats"><div><span>Matches</span><b>{summary.matches}</b></div><div><span>Requirement</span><b>{summary.requestedQuantity?Number(summary.requestedQuantity).toLocaleString("en-IN"):"—"}</b><small>{summary.buyer||"Manual search"}</small></div><div><span>Lowest rate</span><b>{summary.lowestRate?"₹"+Number(summary.lowestRate).toLocaleString("en-IN"):"—"}</b></div><div><span>Supply coverage</span><b>{summary.requestedQuantity&&summary.totalAvailable>=summary.requestedQuantity?"Covered":"Partial"}</b><small>{Number(summary.totalAvailable).toLocaleString("en-IN")} available</small></div></section>}
-  <section className="finderResults">
-   <div className="finderResultsHead"><div><h3>Matching supply</h3><p>{selectedMaterial?selectedMaterial.name:"All known materials"} · ranked by quantity, location and price fit</p></div><SlidersHorizontal size={16}/></div>
-   {!results.length?<div className="finderEmpty"><Package size={22}/><b>Search the network</b><span>Select a saved buyer requirement or enter material and quantity.</span></div>:
-   <div className="supplyList">{results.map((r:any)=><div className={"supplyRow "+(selected?.id===r.id?"selectedSupply":"")} key={r.id+"-"+r.source}>
-    <div className="supplyMain"><div className="supplyMaterial"><b>{r.material}</b><span>{r.grade||r.specification||"Specification not recorded"}</span></div><span className="sourceTag">{r.source}</span></div>
-    <div><small>AVAILABLE</small><strong>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</strong></div>
-    <div><small>PRICE</small><strong>{r.rate?"₹"+Number(r.rate).toLocaleString("en-IN"):"—"}</strong></div>
-    <div><small>SUPPLIER / LOCATION</small><strong>{r.seller||"—"}</strong><span className="rowSub"><MapPin size={10}/>{r.location||"—"}</span></div>
-    <div><small>MATCH</small><strong className="matchScore">{r.matchScore}%</strong></div>
-    <button className="supplyAction" title="Select supply" onClick={()=>setSelected(r)}>{selected?.id===r.id?<CheckCircle2 size={15}/>:<ArrowRight size={15}/>}</button>
-   </div>)}</div>}
-  </section>
-  {allocation.length>1&&demandId&&<section className="finderAction splitMatch"><div><span className="eyebrow">MULTI-SOURCE MATCH</span><h3>One buyer requirement can be fulfilled from {allocation.length} suppliers</h3><p>Smart matching combines the cheapest available sources until the remaining requirement is covered.</p><div className="allocationList">{allocation.map((a:any)=><div key={a.opportunityId}><span>{a.seller}</span><b>{Number(a.allocatedQuantity).toLocaleString("en-IN")} {a.unit}</b><span>{a.rate?"₹"+Number(a.rate).toLocaleString("en-IN"):"Rate not recorded"}</span></div>)}</div></div><div className="finderActionButtons"><button className="saveBtn" onClick={async()=>{setWorking(true);const r=await fetch("/api/workflows/create-split-deals",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({demandId,allocations:allocation.map(a=>({opportunityId:a.opportunityId,quantity:a.allocatedQuantity}))})});const d=await r.json();setWorking(false);if(!r.ok)return alert(d.error||"Could not create combined deals.");window.location.href="/deals";}} disabled={working}>{working?"Creating...":"Create Combined Deal"}<ArrowRight size={13}/></button></div></section>}\n  {selected&&<section className="finderAction"><div><span className="eyebrow">SELECTED SUPPLY</span><h3>{selected.material} · {Number(selected.quantity).toLocaleString("en-IN")} {selected.unit}</h3><p>{selected.seller} · {selected.location||"Location not recorded"} · {selected.rate?"₹"+Number(selected.rate):"Rate not recorded"}</p></div><div className="finderActionButtons"><button className="secondaryBtn" onClick={()=>setSelected(null)}><X size={13}/> Clear</button>{selected.opportunityId&&demandId&&<button className="saveBtn" onClick={createDeal} disabled={working}>{working?"Creating...":"Create Deal from Match"}<ArrowRight size={13}/></button>}</div></section>}
- </div>;
+export default function SmartMaterialFinder({
+  materials,
+  buyers,
+  demands,
+}: FinderProps) {
+  const [materialId, setMaterialId] = useState("");
+  const [buyerId, setBuyerId] = useState("");
+  const [demandId, setDemandId] = useState("");
+  const [query, setQuery] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [location, setLocation] = useState("");
+  const [maxRate, setMaxRate] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+  const [working, setWorking] = useState(false);
+  const [allocation, setAllocation] = useState<any[]>([]);
+
+  const buyerDemands = demands.filter(
+    (d: any) => !buyerId || d.buyerId === buyerId
+  );
+  const selectedMaterial = materials.find((m: any) => m.id === materialId);
+
+  function chooseDemand(id: string) {
+    setDemandId(id);
+    const demand = demands.find((d: any) => d.id === id);
+    if (!demand) return;
+
+    setBuyerId(demand.buyerId);
+    setMaterialId(demand.materialId);
+    setQuantity(String(Number(demand.quantity)));
+    setMaxRate(
+      demand.targetRate ? String(Number(demand.targetRate)) : ""
+    );
+    setLocation(demand.location || "");
+    setQuery(
+      [
+        demand.material?.name,
+        demand.material?.grade,
+        demand.material?.specification,
+        demand.notes,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+  }
+
+  function chooseBuyer(id: string) {
+    setBuyerId(id);
+    setDemandId("");
+  }
+
+  async function search() {
+    setLoading(true);
+    setSelected(null);
+
+    try {
+      const params = new URLSearchParams();
+
+      if (materialId) params.set("materialId", materialId);
+      if (query) params.set("q", query);
+      if (quantity) params.set("quantity", quantity);
+      if (location) params.set("location", location);
+      if (maxRate) params.set("maxRate", maxRate);
+      if (buyerId) params.set("buyerId", buyerId);
+      if (demandId) params.set("demandId", demandId);
+
+      const response = await fetch("/api/smart-finder?" + params.toString());
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Search failed");
+      }
+
+      const matches = data.results || [];
+      setResults(matches);
+      setSummary(data.summary || null);
+
+      const required = Number(data.summary?.requestedQuantity || 0);
+      let remaining = required;
+      const plan: any[] = [];
+
+      const supplierMatches = matches
+        .filter((item: any) => item.opportunityId)
+        .slice()
+        .sort(
+          (a: any, b: any) =>
+            (a.rate ?? 999999999) - (b.rate ?? 999999999)
+        );
+
+      for (const item of supplierMatches) {
+        if (remaining <= 0) break;
+
+        const available = Number(item.quantity || 0);
+        const take = Math.min(remaining, available);
+
+        if (take > 0) {
+          plan.push({
+            ...item,
+            allocatedQuantity: take,
+          });
+          remaining -= take;
+        }
+      }
+
+      setAllocation(plan);
+    } catch (error: any) {
+      alert(error.message || "Unable to search the supply network.");
+      setResults([]);
+      setSummary(null);
+      setAllocation([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function createDeal() {
+    if (!selected?.opportunityId || !demandId) {
+      alert("Select a supplier opportunity and a buyer requirement first.");
+      return;
+    }
+
+    setWorking(true);
+
+    try {
+      const response = await fetch("/api/workflows/convert-to-deal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          opportunityId: selected.opportunityId,
+          demandId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not create deal.");
+      }
+
+      window.location.href = "/deals/" + data.deal.id;
+    } catch (error: any) {
+      alert(error.message || "Could not create deal.");
+      setWorking(false);
+    }
+  }
+
+  async function createCombinedDeal() {
+    if (!demandId || allocation.length < 2) return;
+
+    setWorking(true);
+
+    try {
+      const response = await fetch(
+        "/api/workflows/create-split-deals",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            demandId,
+            allocations: allocation.map((item: any) => ({
+              opportunityId: item.opportunityId,
+              quantity: item.allocatedQuantity,
+            })),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Could not create the combined deal."
+        );
+      }
+
+      window.location.href = "/deals";
+    } catch (error: any) {
+      alert(
+        error.message || "Could not create the combined deal."
+      );
+      setWorking(false);
+    }
+  }
+
+  return (
+    <div className="finder">
+      <section className="finderSearch">
+        <div className="finderTitle">
+          <div>
+            <span className="eyebrow">SUPPLY MATCHING ENGINE</span>
+            <h2>Find supply for a buyer requirement</h2>
+            <p>
+              Select a saved requirement or enter material and quantity
+              manually. The ERP searches the central supply database.
+            </p>
+          </div>
+          <div className="finderIcon">
+            <Search size={19} />
+          </div>
+        </div>
+
+        <div className="finderGrid">
+          <label>
+            Buyer requirement
+            <select
+              value={demandId}
+              onChange={(event) => chooseDemand(event.target.value)}
+            >
+              <option value="">Select a saved requirement...</option>
+              {demands.map((demand: any) => (
+                <option key={demand.id} value={demand.id}>
+                  {demand.buyer.name} · {demand.material.name} ·{" "}
+                  {Number(demand.quantity).toLocaleString("en-IN")}{" "}
+                  {demand.unit}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Buyer
+            <select
+              value={buyerId}
+              onChange={(event) => chooseBuyer(event.target.value)}
+            >
+              <option value="">Any buyer</option>
+              {buyers.map((buyer: any) => (
+                <option key={buyer.id} value={buyer.id}>
+                  {buyer.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Material
+            <select
+              value={materialId}
+              onChange={(event) => setMaterialId(event.target.value)}
+            >
+              <option value="">Any material</option>
+              {materials.map((material: any) => (
+                <option key={material.id} value={material.id}>
+                  {material.name}
+                  {material.grade ? " · " + material.grade : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Material / size / specification
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="e.g. HR Coil 2mm 1250"
+            />
+          </label>
+
+          <label>
+            Required quantity
+            <input
+              type="number"
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              placeholder="e.g. 50000"
+            />
+          </label>
+
+          <label>
+            Location
+            <input
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              placeholder="Delhi / Faridabad / Bawal"
+            />
+          </label>
+
+          <label>
+            Maximum buy rate
+            <input
+              type="number"
+              value={maxRate}
+              onChange={(event) => setMaxRate(event.target.value)}
+              placeholder="Optional ₹/unit"
+            />
+          </label>
+
+          <label>
+            Saved requirements for buyer
+            <select
+              value=""
+              onChange={(event) => chooseDemand(event.target.value)}
+              disabled={!buyerId}
+            >
+              <option value="">
+                {buyerId
+                  ? "Select another requirement..."
+                  : "Select buyer first"}
+              </option>
+              {buyerDemands.map((demand: any) => (
+                <option key={demand.id} value={demand.id}>
+                  {demand.material.name} ·{" "}
+                  {Number(demand.quantity).toLocaleString("en-IN")}{" "}
+                  {demand.unit}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <button
+          className="finderButton"
+          onClick={search}
+          disabled={loading}
+        >
+          <Search size={15} />
+          {loading ? "Searching..." : "Find Matching Supply"}
+        </button>
+      </section>
+
+      {summary && (
+        <section className="finderStats">
+          <div>
+            <span>Matches</span>
+            <b>{summary.matches}</b>
+          </div>
+          <div>
+            <span>Requirement</span>
+            <b>
+              {summary.requestedQuantity
+                ? Number(summary.requestedQuantity).toLocaleString("en-IN")
+                : "—"}
+            </b>
+            <small>{summary.buyer || "Manual search"}</small>
+          </div>
+          <div>
+            <span>Lowest rate</span>
+            <b>
+              {summary.lowestRate
+                ? "₹" +
+                  Number(summary.lowestRate).toLocaleString("en-IN")
+                : "—"}
+            </b>
+          </div>
+          <div>
+            <span>Supply coverage</span>
+            <b>
+              {summary.requestedQuantity &&
+              summary.totalAvailable >= summary.requestedQuantity
+                ? "Covered"
+                : "Partial"}
+            </b>
+            <small>
+              {Number(summary.totalAvailable || 0).toLocaleString(
+                "en-IN"
+              )}{" "}
+              available
+            </small>
+          </div>
+        </section>
+      )}
+
+      <section className="finderResults">
+        <div className="finderResultsHead">
+          <div>
+            <h3>Matching supply</h3>
+            <p>
+              {selectedMaterial?.name || "All known materials"} · ranked
+              by quantity, location and price fit
+            </p>
+          </div>
+          <SlidersHorizontal size={16} />
+        </div>
+
+        {!results.length ? (
+          <div className="finderEmpty">
+            <Package size={22} />
+            <b>Search the network</b>
+            <span>
+              Select a saved buyer requirement or enter material and
+              quantity.
+            </span>
+          </div>
+        ) : (
+          <div className="supplyList">
+            {results.map((item: any) => (
+              <div
+                className={
+                  "supplyRow " +
+                  (selected?.id === item.id ? "selectedSupply" : "")
+                }
+                key={item.id + "-" + item.source}
+              >
+                <div className="supplyMain">
+                  <div className="supplyMaterial">
+                    <b>{item.material}</b>
+                    <span>
+                      {item.grade ||
+                        item.specification ||
+                        "Specification not recorded"}
+                    </span>
+                  </div>
+                  <span className="sourceTag">{item.source}</span>
+                </div>
+
+                <div>
+                  <small>AVAILABLE</small>
+                  <strong>
+                    {Number(item.quantity).toLocaleString("en-IN")}{" "}
+                    {item.unit}
+                  </strong>
+                </div>
+
+                <div>
+                  <small>PRICE</small>
+                  <strong>
+                    {item.rate
+                      ? "₹" +
+                        Number(item.rate).toLocaleString("en-IN")
+                      : "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <small>SUPPLIER / LOCATION</small>
+                  <strong>{item.seller || "—"}</strong>
+                  <span className="rowSub">
+                    <MapPin size={10} />
+                    {item.location || "—"}
+                  </span>
+                </div>
+
+                <div>
+                  <small>MATCH</small>
+                  <strong className="matchScore">
+                    {item.matchScore}%
+                  </strong>
+                </div>
+
+                <button
+                  className="supplyAction"
+                  title="Select supply"
+                  onClick={() => setSelected(item)}
+                >
+                  {selected?.id === item.id ? (
+                    <CheckCircle2 size={15} />
+                  ) : (
+                    <ArrowRight size={15} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {allocation.length > 1 && demandId && (
+        <section className="finderAction splitMatch">
+          <div>
+            <span className="eyebrow">MULTI-SOURCE MATCH</span>
+            <h3>
+              One buyer requirement can be fulfilled from{" "}
+              {allocation.length} suppliers
+            </h3>
+            <p>
+              The ERP combines the lowest available sources until the
+              remaining buyer requirement is covered.
+            </p>
+
+            <div className="allocationList">
+              {allocation.map((item: any) => (
+                <div key={item.opportunityId}>
+                  <span>{item.seller}</span>
+                  <b>
+                    {Number(item.allocatedQuantity).toLocaleString(
+                      "en-IN"
+                    )}{" "}
+                    {item.unit}
+                  </b>
+                  <span>
+                    {item.rate
+                      ? "₹" +
+                        Number(item.rate).toLocaleString("en-IN")
+                      : "Rate not recorded"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="finderActionButtons">
+            <button
+              className="saveBtn"
+              onClick={createCombinedDeal}
+              disabled={working}
+            >
+              {working ? "Creating..." : "Create Combined Deal"}
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </section>
+      )}
+
+      {selected && (
+        <section className="finderAction">
+          <div>
+            <span className="eyebrow">SELECTED SUPPLY</span>
+            <h3>
+              {selected.material} ·{" "}
+              {Number(selected.quantity).toLocaleString("en-IN")}{" "}
+              {selected.unit}
+            </h3>
+            <p>
+              {selected.seller || "Unknown supplier"} ·{" "}
+              {selected.location || "Location not recorded"} ·{" "}
+              {selected.rate
+                ? "₹" + Number(selected.rate).toLocaleString("en-IN")
+                : "Rate not recorded"}
+            </p>
+          </div>
+
+          <div className="finderActionButtons">
+            <button
+              className="secondaryBtn"
+              onClick={() => setSelected(null)}
+            >
+              <X size={13} /> Clear
+            </button>
+
+            {selected.opportunityId && demandId && (
+              <button
+                className="saveBtn"
+                onClick={createDeal}
+                disabled={working}
+              >
+                {working ? "Creating..." : "Create Deal from Match"}
+                <ArrowRight size={13} />
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
 }
