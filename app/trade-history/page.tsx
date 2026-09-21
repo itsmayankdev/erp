@@ -14,7 +14,7 @@ export default async function TradeHistoryPage(){
    where:{companyId:company.id},
    orderBy:{createdAt:"desc"},
    include:{
-    seller:true,buyer:true,material:true,
+    seller:true,buyer:true,material:true,dealSources:{include:{seller:true}},
     purchases:{include:{payments:true}},
     salesOrders:{include:{payments:true}}
    }
@@ -48,13 +48,15 @@ export default async function TradeHistoryPage(){
      id:d.id,counterpartyId:d.seller.id,counterpartyName:d.seller.name,role:"seller",material:d.material,
      quantity:n(d.quantity),buyRate:n(d.buyRate),sellRate:n(d.sellRate),purchaseValue,salesValue,profit,
      freight:n(d.freightCost)+n(d.loadingCost)+n(d.otherCost),paid:paidPurchasePayment,paidPurchasePayment,receivedSalesPayment,
-     status:d.status,procurementType:d.procurementType,createdAt:d.createdAt
+     status:d.status,procurementType:d.procurementType,createdAt:d.createdAt,
+     details:{sources:d.dealSources.map((s:any)=>({seller:s.seller?.name||"Internal",quantity:n(s.quantity),buyRate:n(s.buyRate),location:s.location||"—"})),purchases:d.purchases.map((p:any)=>({reference:p.reference,quantity:n(p.quantity),rate:n(p.rate),status:p.status,receivedAt:p.receivedAt,payments:(p.payments||[]).map((x:any)=>n(x.amount))})),sales:d.salesOrders.map((s:any)=>({reference:s.reference,quantity:n(s.quantity),rate:n(s.rate),status:s.status,dispatchDate:s.dispatchDate,payments:(s.payments||[]).map((x:any)=>n(x.amount))}))}
    });
    if(d.buyer) rows.push({
      id:d.id,counterpartyId:d.buyer.id,counterpartyName:d.buyer.name,role:"buyer",material:d.material,
      quantity:n(d.quantity),buyRate:n(d.buyRate),sellRate:n(d.sellRate),purchaseValue,salesValue,profit,
      freight:n(d.freightCost)+n(d.loadingCost)+n(d.otherCost),paid:receivedSalesPayment,paidPurchasePayment,receivedSalesPayment,
-     status:d.status,procurementType:d.procurementType,createdAt:d.createdAt
+     status:d.status,procurementType:d.procurementType,createdAt:d.createdAt,
+     details:{sources:d.dealSources.map((s:any)=>({seller:s.seller?.name||"Internal",quantity:n(s.quantity),buyRate:n(s.buyRate),location:s.location||"—"})),purchases:d.purchases.map((p:any)=>({reference:p.reference,quantity:n(p.quantity),rate:n(p.rate),status:p.status,receivedAt:p.receivedAt,payments:(p.payments||[]).map((x:any)=>n(x.amount))})),sales:d.salesOrders.map((s:any)=>({reference:s.reference,quantity:n(s.quantity),rate:n(s.rate),status:s.status,dispatchDate:s.dispatchDate,payments:(s.payments||[]).map((x:any)=>n(x.amount))}))}
    });
  }
 
