@@ -10,6 +10,7 @@ const modelMap: Record<string,string> = {
   purchase:"purchase",
   sales:"salesOrder",
   deals:"deal",
+  payments:"payment",
   "buyer-demands":"buyerDemand",
   sellers:"seller",
   materials:"material"
