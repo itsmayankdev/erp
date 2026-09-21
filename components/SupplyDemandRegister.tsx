@@ -14,7 +14,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
   const isSupply=mode==="suppliers";
   const [q,setQ]=useState(""),[material,setMaterial]=useState(""),[party,setParty]=useState(""),[city,setCity]=useState(""),[status,setStatus]=useState(""),[type,setType]=useState("");
   const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
-  const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);
+  const [editing,setEditing]=useState<any|null>(null),[saving,setSaving]=useState(false);\n  const [editMaterialOpen,setEditMaterialOpen]=useState(false),[editMaterialSearch,setEditMaterialSearch]=useState("");
 
   const materialOptions=useMemo(()=>materials.map((m:any)=>typeof m==="string"?{id:m,name:m}:m).filter((m:any)=>m?.name),[materials]);
   const materialNames=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
@@ -149,7 +149,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
     </tbody></table></div>
 
     {editing&&<div className="recordModalBackdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><div className="recordModal">
-      <div className="recordModalHead"><div><span>EDIT RECORD</span><h2>{editing.kind==="supplier"?"Edit Seller / Supply":"Edit Buyer Requirement"}</h2></div><button onClick={()=>setEditing(null)}><X size={18}/></button></div>
+      <div className="recordModalHead"><div><span>EDIT RECORD</span><h2>{editing.kind==="supplier"?"Edit Seller / Supply":"Edit Buyer Requirement"}</h2></div><button onClick={()=>{setEditing(null);setEditMaterialOpen(false)}}><X size={18}/></button></div>
       <div className="recordModalBody">
         <div className="editSectionTitle">Company / Contact</div>
         <div className="editGrid">
@@ -160,7 +160,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
         </div>
         <div className="editSectionTitle">Material & Commercial Details</div>
         <div className="editGrid">
-          <label>Material<input list="edit-material-options" value={editing.material} onChange={e=>{const name=e.target.value; const m=materialOptions.find((x:any)=>x.name===name); setEditing({...editing,material:name,materialId:m?.id||""})}}/><datalist id="edit-material-options">{materialOptions.map((m:any)=><option key={m.id||m.name} value={m.name}>{[m.grade,m.specification].filter(Boolean).join(" · ")}</option>)}</datalist></label>
+          <label>Material<div className="editMaterialPicker"><input value={editMaterialSearch || editing.material || ""} onFocus={()=>{setEditMaterialSearch(editing.material||"");setEditMaterialOpen(true)}} onChange={e=>{setEditMaterialSearch(e.target.value);setEditMaterialOpen(true)}} placeholder="Type to search material..." autoComplete="off"/>{editMaterialOpen&&<div className="editMaterialOptions">{materialOptions.filter((m:any)=>`${m.name} ${m.grade||""} ${m.specification||""}`.toLowerCase().includes((editMaterialSearch||"").toLowerCase())).slice(0,30).map((m:any)=><button type="button" key={m.id||m.name} onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditing({...editing,material:m.name,materialId:m.id});setEditMaterialSearch(m.name);setEditMaterialOpen(false)}}><b>{m.name}</b><small>{[m.grade,m.specification].filter(Boolean).join(" · ")||m.unit||"KG"}</small></button>)}{!materialOptions.some((m:any)=>`${m.name} ${m.grade||""} ${m.specification||""}`.toLowerCase().includes((editMaterialSearch||"").toLowerCase()))&&<span className="editMaterialEmpty">No matching material</span>}</div>}</div></label>
           <label>Grade<input value={editing.grade} onChange={e=>setEditing({...editing,grade:e.target.value})}/></label>
           <label>Specification<input value={editing.specification} onChange={e=>setEditing({...editing,specification:e.target.value})}/></label>
           <label>Quantity / Weight<input type="number" value={editing.quantity} onChange={e=>setEditing({...editing,quantity:e.target.value})}/></label>
@@ -169,7 +169,7 @@ export default function SupplyDemandRegister({mode,rows,materials=[]}:Props){
         </div>
         {editing.kind!=="supplier"&&<label className="editNotes">Notes<textarea value={editing.notes} onChange={e=>setEditing({...editing,notes:e.target.value})}/></label>}
       </div>
-      <div className="recordModalFoot"><button className="secondaryBtn" onClick={()=>setEditing(null)}>Cancel</button><button className="primaryBtn" onClick={saveEdit} disabled={saving}><Save size={14}/>{saving?"Saving...":"Save changes"}</button></div>
+      <div className="recordModalFoot"><button className="secondaryBtn" onClick={()=>{setEditing(null);setEditMaterialOpen(false)}}>Cancel</button><button className="primaryBtn" onClick={saveEdit} disabled={saving}><Save size={14}/>{saving?"Saving...":"Save changes"}</button></div>
     </div></div>}
   </section>;
 }
