@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import DocumentCenter from "@/components/DocumentCenter";
 
+function serialize<T>(value:T):T {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export default async function DocumentsPage(){
   const company=await prisma.company.findFirst({orderBy:{createdAt:"asc"}});
   if(!company) return <main style={{padding:40}}>Company not initialized.</main>;
@@ -10,5 +14,14 @@ export default async function DocumentsPage(){
     prisma.deal.findMany({where:{companyId:company.id},include:{buyer:true,material:true},orderBy:{createdAt:"desc"},take:50}),
     prisma.document.findMany({where:{companyId:company.id},orderBy:{createdAt:"desc"},take:30})
   ]);
-  return <DocumentCenter company={company} purchases={purchases} salesOrders={salesOrders} deals={deals} documents={documents}/>;
+
+  // Prisma Decimal/Date values cannot cross the Server -> Client Component boundary.
+  // Convert the complete query result to JSON-safe values before passing it to DocumentCenter.
+  return <DocumentCenter
+    company={serialize(company)}
+    purchases={serialize(purchases)}
+    salesOrders={serialize(salesOrders)}
+    deals={serialize(deals)}
+    documents={serialize(documents)}
+  />;
 }
