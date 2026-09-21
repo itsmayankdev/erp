@@ -10,8 +10,10 @@ const address=(c:any)=>[c.address,c.city,c.state,c.pincode].filter(Boolean).join
 export function buildSvg(d:DocumentData){
   const esc=(v:any)=>safe(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const rows=d.item.map((x,i)=>"<tr><td>"+(i+1)+"</td><td><b>"+esc(x.name)+"</b><br><span>"+esc([x.code,x.grade,x.specification].filter(Boolean).join(" · "))+"</span></td><td>"+x.quantity.toLocaleString("en-IN")+"</td><td>"+esc(x.unit)+"</td><td>"+money(x.rate)+"</td><td>"+x.discount+"%</td><td>"+money(x.quantity*x.rate*(1-x.discount/100))+"</td></tr>").join("");
-  const logo=d.company.logoUrl ? "<image href=\""+esc(d.company.logoUrl)+"\" x=\"55\" y=\"42\" width=\"80\" height=\"38\" preserveAspectRatio=\"xMidYMid meet\"/>" : "";\n  return '<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><rect width="794" height="1123" fill="white"/><rect x="32" y="32" width="730" height="1059" fill="none" stroke="#d9e0e8"/>'+
-    '"+logo+"<text x="145" y="72" font-family="Arial" font-size="20" font-weight="700" fill="#172a42">'+esc(d.company.name)+'</text>'+
+  const logo=d.company.logoUrl ? "<image href=\""+esc(d.company.logoUrl)+"\" x=\"55\" y=\"42\" width=\"80\" height=\"38\" preserveAspectRatio=\"xMidYMid meet\"/>" : "";
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123"><rect width="794" height="1123" fill="white"/><rect x="32" y="32" width="730" height="1059" fill="none" stroke="#d9e0e8"/>'+
+    logo+
+    '<text x="145" y="72" font-family="Arial" font-size="20" font-weight="700" fill="#172a42">'+esc(d.company.name)+'</text>'+
     '<text x="55" y="94" font-family="Arial" font-size="9" fill="#64748b">'+esc(address(d.company))+'</text>'+
     '<text x="735" y="76" text-anchor="end" font-family="Arial" font-size="18" font-weight="700" fill="#1f5fc9">'+titleFor(d.type)+'</text>'+
     '<text x="735" y="96" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">No. '+esc(d.number)+'</text><text x="735" y="112" text-anchor="end" font-family="Arial" font-size="10" fill="#475569">Date: '+d.date.toLocaleDateString("en-IN")+'</text>'+
