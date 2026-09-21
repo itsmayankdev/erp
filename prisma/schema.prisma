@@ -18,6 +18,7 @@ model Company {
   materials       Material[]
   deals           Deal[]
   warehouses      Warehouse[]
+  stocks          Stock[]
   users           User[]
   opportunities   Opportunity[]
   demands         BuyerDemand[]
