@@ -113,6 +113,8 @@ model Opportunity {
   companyId           String
   sellerId            String
   materialId          String
+  grade               String?
+  specification       String?
   quantity            Decimal  @db.Decimal(18,3)
   allocatedQuantity   Decimal  @default(0) @db.Decimal(18,3)
   unit                String   @default("KG")
@@ -135,6 +137,8 @@ model BuyerDemand {
   companyId   String
   buyerId     String
   materialId  String
+  grade       String?
+  specification String?
   quantity    Decimal   @db.Decimal(18,3)
   matchedQuantity Decimal @default(0) @db.Decimal(18,3)
   unit        String    @default("KG")
