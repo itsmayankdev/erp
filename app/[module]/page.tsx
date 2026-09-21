@@ -108,7 +108,6 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
             {module==="payments" && <><td>{r.reference}</td><td>{r.type}</td><td>{r.buyer?.name ?? r.purchase?.sellerId ?? "—"}</td><td>₹{Number(r.amount).toLocaleString("en-IN")}</td><td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
             {module==="documents" && <><td>{r.name}</td><td>{r.type}</td><td>{r.reference ?? "—"}</td><td><span className="status">{r.status}</span></td><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td></>}
 
-            {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
           </tr>)}
           {rows.length===0 && <tr><td colSpan={columns.length}>No records yet.</td></tr>}
         </tbody></table></div>
