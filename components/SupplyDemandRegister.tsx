@@ -62,7 +62,7 @@ export default function SupplyDemandRegister({mode,rows}:Props){
       <label>Company / {isSupply?"Supplier":"Buyer"}<select value={party} onChange={e=>setParty(e.target.value)}><option value="">All</option>{parties.map(x=><option key={x}>{x}</option>)}</select></label>
       <label>Material<select value={material} onChange={e=>setMaterial(e.target.value)}><option value="">All materials</option>{materials.map(x=><option key={x}>{x}</option>)}</select></label>
       <label>City / Location<select value={city} onChange={e=>setCity(e.target.value)}><option value="">All locations</option>{cities.map(x=><option key={x}>{x}</option>)}</select></label>
-      <label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option>{Array.from(new Set(rows.map(r=>r.status).filter(Boolean))).sort().map(x=><option key={x}>{x}</option>)}</select></label>
+      <label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map(x=><option key={x}>{x}</option>)}</select></label>
       {isSupply&&<label>Source type<select value={type} onChange={e=>setType(e.target.value)}><option value="">All source types</option>{types.map(x=><option key={x}>{x}</option>)}</select></label>}
     </div>
     <div className="registerTableWrap"><table className="registerTable"><thead><tr>
