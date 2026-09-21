@@ -1,19 +1,8 @@
 import {
   ArrowUpRight,
   Bell,
-  Boxes,
-  BriefcaseBusiness,
   ChevronRight,
-  FileCheck2,
-  LayoutDashboard,
-  PackageSearch,
-  ReceiptText,
-  Search,
-  ShoppingCart,
-  Truck,
-  Users,
-  Warehouse,
-  Zap
+  Search
 } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -46,92 +35,8 @@ export default async function Home() {
 
   if (!company) {
     return (
-      <main style={{ padding: 40, fontFamily: "Arial, sans-serif" }}>
-        <h1>Steel Trading ERP</h1>
-        <p>Database is connected, but no company has been created yet.</p>
-        <p>Run <code>npm run db:seed</code> in Codespaces.</p>
-      </main>
-    );
-  }
+    <main className="erpPage">
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const [
-    openDeals,
-    opportunities,
-    buyerDemands,
-    inventory,
-    receivables,
-    payables,
-    todayPurchases,
-    todaySalesAgg,
-    priorityDeals
-  ] = await Promise.all([
-    prisma.deal.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.opportunity.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.buyerDemand.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.stock.findMany({
-      where: { companyId: company.id },
-      select: { quantity: true, unitCost: true }
-    }),
-    prisma.payment.aggregate({
-      where: { companyId: company.id, type: "Receivable", status: { not: "Paid" } },
-      _sum: { amount: true }
-    }),
-    prisma.payment.aggregate({
-      where: { companyId: company.id, type: "Payable", status: { not: "Paid" } },
-      _sum: { amount: true }
-    }),
-    prisma.purchase.aggregate({
-      where: { companyId: company.id, createdAt: { gte: startOfDay } },
-      _sum: { quantity: true, rate: true }
-    }),
-    prisma.salesOrder.aggregate({
-      where: { companyId: company.id, createdAt: { gte: startOfDay } },
-      _sum: { quantity: true, rate: true }
-    }),
-    prisma.deal.findMany({
-      where: { companyId: company.id, status: { not: "Closed" } },
-      include: { seller: true, buyer: true, material: true },
-      orderBy: { updatedAt: "desc" },
-      take: 8
-    })
-  ]);
-
-  const inventoryValue = inventory.reduce(
-    (sum, item) => sum + Number(item.quantity) * Number(item.unitCost ?? 0),
-    0
-  );
-  const todayPurchase = Number(todayPurchases._sum.quantity ?? 0) * Number(todayPurchases._sum.rate ?? 0);
-  const todaySales = Number(todaySalesAgg._sum.quantity ?? 0) * Number(todaySalesAgg._sum.rate ?? 0);
-  const todayProfit = todaySales - todayPurchase;
-
-  return (
-    <main className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brandMark">E</div>
-          <div><strong>ERP</strong><span>Steel Trading OS</span></div>
-        </div>
-
-        <nav>
-          {nav.map(([label, Icon], i) => (
-            <Link href={label === "Overview" ? "/" : "/" + label.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")} key={label} className={"navItem " + (i === 0 ? "active" : "")}>
-              <Icon size={18} />
-              <span>{label}</span>
-              {label === "Deals" && <b>{openDeals}</b>}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="sideBottom">
-          <div className="secure"><span className="dot" />Centralized data</div>
-          <small>All business records connect to one source of truth.</small>
-        </div>
-      </aside>
-
-      <section className="content">
         <header className="topbar">
           <div>
             <p className="eyebrow">BUSINESS CONTROL CENTER</p>
@@ -221,7 +126,7 @@ export default async function Home() {
         </section>
 
         <footer><span>ERP Foundation · PostgreSQL source of truth</span><span>© 2026</span></footer>
-      </section>
+
     </main>
   );
 }
