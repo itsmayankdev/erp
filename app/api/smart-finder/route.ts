@@ -26,7 +26,7 @@ export async function GET(req:NextRequest){
 
   const results:any[]=[];
   for(const o of opportunities){
-    const text=[o.material.name,o.material.grade,o.material.specification,o.notes,o.location].filter(Boolean).join(" ").toLowerCase();
+    const text=[o.material.name,o.grade,o.specification,o.material.grade,o.material.specification,o.notes,o.location].filter(Boolean).join(" ").toLowerCase();
     const materialMatch=!effectiveMaterialId||o.materialId===effectiveMaterialId;
     const queryMatch=!q||text.includes(q)||q.split(/\s+/).every(x=>text.includes(x));
     const locationMatch=!location||String(o.location||"").toLowerCase().includes(location);
@@ -38,7 +38,7 @@ export async function GET(req:NextRequest){
     if(effectiveQuantity&&qty>=effectiveQuantity)score+=15; else if(effectiveQuantity&&qty>0)score+=7;
     if(location&&locationMatch)score+=5;
     if(effectiveMaxRate&&rate&&rate<=effectiveMaxRate)score+=5;
-    results.push({id:o.id,opportunityId:o.id, sellerId:o.sellerId, source:"Supplier opportunity",material:o.material.name,grade:o.material.grade,specification:o.material.specification,quantity:qty,unit:o.unit,rate,location:o.location||o.seller.city,matchScore:Math.min(score,99),seller:o.seller.name});
+    results.push({id:o.id,opportunityId:o.id, sellerId:o.sellerId, source:"Supplier opportunity",material:o.material.name,grade:o.grade||o.material.grade,specification:o.specification||o.material.specification,quantity:qty,unit:o.unit,rate,location:o.location||o.seller.city,matchScore:Math.min(score,99),seller:o.seller.name});
   }
   for(const s of stocks){
     const text=[s.material.name,s.material.grade,s.material.specification,s.warehouse?.name,s.warehouse?.city].filter(Boolean).join(" ").toLowerCase();
