@@ -1,9 +1,4 @@
-import {
-  ArrowUpRight,
-  Bell,
-  ChevronRight,
-  Search
-} from "lucide-react";
+import { ArrowUpRight, Bell, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -15,38 +10,6 @@ const money = (n: number) =>
     currency: "INR",
     maximumFractionDigits: 0
   }).format(n);
-
-mport {
-  ArrowUpRight,
-  Bell,
-  ChevronRight,
-  Search
-} from "lucide-react";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-
-export const dynamic = "force-dynamic";
-
-const money = (n: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0
-  }).format(n);
-
-const nav = [
-  ["Overview", LayoutDashboard],
-  ["Market Intelligence", PackageSearch],
-  ["Opportunities", Zap],
-  ["Deals", BriefcaseBusiness],
-  ["Agreements", FileCheck2],
-  ["Purchase", ShoppingCart],
-  ["Inventory", Boxes],
-  ["Sales", ReceiptText],
-  ["Dispatch", Truck],
-  ["Customers & Buyers", Users],
-  ["Warehouses", Warehouse]
-] as const;
 
 export default async function Home() {
   const company = await prisma.company.findFirst({ orderBy: { createdAt: "asc" } });
