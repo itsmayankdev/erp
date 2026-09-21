@@ -77,6 +77,20 @@ export async function DELETE(req:NextRequest) {
   const company=await prisma.company.findFirst({orderBy:{createdAt:"asc"}});
   if(!company) return NextResponse.json({error:"Company not initialized"},{status:400});
   try {
+    if(module==="sellers"){
+      const seller=await prisma.seller.findFirst({where:{id:String(body.id),companyId:company.id}});
+      if(!seller) return NextResponse.json({error:"Seller record not found"}, {status:404});
+      const [dealCount,purchaseCount]=await Promise.all([
+        prisma.deal.count({where:{sellerId:seller.id,companyId:company.id}}),
+        prisma.purchase.count({where:{sellerId:seller.id,companyId:company.id}})
+      ]);
+      if(dealCount||purchaseCount) return NextResponse.json({error:"This seller is linked to deals or purchases and cannot be deleted. Keep the seller and remove/close linked transactions first."},{status:409});
+      await prisma.$transaction(async tx=>{
+        await tx.opportunity.deleteMany({where:{sellerId:seller.id,companyId:company.id}});
+        await tx.seller.delete({where:{id:seller.id}});
+      });
+      return NextResponse.json({ok:true});
+    }
     const result=await (prisma as any)[model].deleteMany({where:{id:String(body.id),companyId:company.id}});
     if(!result.count) return NextResponse.json({error:"Record not found"}, {status:404});
     return NextResponse.json({ok:true});
