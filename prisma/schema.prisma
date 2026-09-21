@@ -1,168 +1,331 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model Company {
-  id String @id @default(cuid())
-  name String
-  code String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sellers Seller[]
-  buyers Buyer[]
-  materials Material[]
-  deals Deal[]
-  warehouses Warehouse[]
-  users User[]
-  opportunities Opportunity[]
-  demands BuyerDemand[]
+  id              String          @id @default(cuid())
+  name            String
+  code            String          @unique
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  sellers         Seller[]
+  buyers          Buyer[]
+  materials       Material[]
+  deals           Deal[]
+  warehouses      Warehouse[]
+  users           User[]
+  opportunities   Opportunity[]
+  demands         BuyerDemand[]
+  purchases       Purchase[]
+  salesOrders     SalesOrder[]
+  payments        Payment[]
+  agreements      Agreement[]
+  documents       Document[]
+  priceIntel      PriceIntelligence[]
+  auditLogs       AuditLog[]
 }
 
 model User {
-  id String @id @default(cuid())
-  companyId String
-  name String
-  email String @unique
-  role String
-  active Boolean @default(true)
-  createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
+  id          String      @id @default(cuid())
+  companyId   String
+  name        String
+  email       String      @unique
+  role        String
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  company     Company     @relation(fields: [companyId], references: [id])
+  auditLogs   AuditLog[]
 }
 
 model Seller {
-  id String @id @default(cuid())
-  companyId String
-  name String
-  phone String?
-  email String?
-  city String?
-  createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
-  deals Deal[]
+  id            String        @id @default(cuid())
+  companyId     String
+  name          String
+  phone         String?
+  email         String?
+  city          String?
+  category      String?
+  reliability  String?
+  createdAt     DateTime      @default(now())
+  company       Company       @relation(fields: [companyId], references: [id])
+  deals         Deal[]
   opportunities Opportunity[]
+  purchases     Purchase[]
 }
 
 model Buyer {
-  id String @id @default(cuid())
-  companyId String
-  name String
-  phone String?
-  email String?
-  city String?
-  createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
-  deals Deal[]
-  demands BuyerDemand[]
+  id          String        @id @default(cuid())
+  companyId   String
+  name        String
+  phone       String?
+  email       String?
+  city        String?
+  creditLimit Decimal?      @db.Decimal(18,2)
+  createdAt   DateTime      @default(now())
+  company     Company       @relation(fields: [companyId], references: [id])
+  deals       Deal[]
+  demands     BuyerDemand[]
+  salesOrders SalesOrder[]
+  payments    Payment[]
 }
 
 model Material {
-  id String @id @default(cuid())
-  companyId String
-  name String
-  grade String?
+  id            String              @id @default(cuid())
+  companyId     String
+  code          String?
+  name          String
+  grade         String?
   specification String?
-  unit String @default("KG")
-  createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
-  deals Deal[]
-  stocks Stock[]
+  unit          String              @default("KG")
+  active        Boolean             @default(true)
+  createdAt     DateTime            @default(now())
+  company       Company             @relation(fields: [companyId], references: [id])
+  deals         Deal[]
+  stocks        Stock[]
   opportunities Opportunity[]
-  demands BuyerDemand[]
+  demands       BuyerDemand[]
+  purchases     Purchase[]
+  salesOrders   SalesOrder[]
+  priceIntel    PriceIntelligence[]
 }
 
 model Warehouse {
-  id String @id @default(cuid())
+  id        String   @id @default(cuid())
   companyId String
-  name String
-  city String?
-  active Boolean @default(true)
+  name      String
+  city      String?
+  capacity  Decimal? @db.Decimal(18,3)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
+  company   Company  @relation(fields: [companyId], references: [id])
+  stocks    Stock[]
 }
 
 model Opportunity {
-  id String @id @default(cuid())
-  companyId String
-  sellerId String
-  materialId String
-  quantity Decimal
-  unit String @default("KG")
-  askingRate Decimal?
-  estimatedMarketRate Decimal?
-  sourceType String
-  status String
-  location String?
-  notes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  company Company @relation(fields:[companyId],references:[id])
-  seller Seller @relation(fields:[sellerId],references:[id])
-  material Material @relation(fields:[materialId],references:[id])
+  id                  String   @id @default(cuid())
+  companyId           String
+  sellerId            String
+  materialId          String
+  quantity            Decimal  @db.Decimal(18,3)
+  unit                String   @default("KG")
+  askingRate          Decimal? @db.Decimal(18,4)
+  estimatedMarketRate Decimal? @db.Decimal(18,4)
+  sourceType          String
+  status              String
+  location            String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  company             Company  @relation(fields: [companyId], references: [id])
+  seller              Seller   @relation(fields: [sellerId], references: [id])
+  material            Material @relation(fields: [materialId], references: [id])
+  deals               Deal[]
 }
 
 model BuyerDemand {
-  id String @id @default(cuid())
-  companyId String
-  buyerId String
-  materialId String
-  quantity Decimal
-  unit String @default("KG")
-  targetRate Decimal?
-  requiredBy DateTime?
-  location String?
-  status String
-  notes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  company Company @relation(fields:[companyId],references:[id])
-  buyer Buyer @relation(fields:[buyerId],references:[id])
-  material Material @relation(fields:[materialId],references:[id])
+  id          String    @id @default(cuid())
+  companyId   String
+  buyerId     String
+  materialId  String
+  quantity    Decimal   @db.Decimal(18,3)
+  unit        String    @default("KG")
+  targetRate  Decimal?  @db.Decimal(18,4)
+  requiredBy  DateTime?
+  location    String?
+  status      String
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  company     Company   @relation(fields: [companyId], references: [id])
+  buyer       Buyer     @relation(fields: [buyerId], references: [id])
+  material    Material  @relation(fields: [materialId], references: [id])
+  deals       Deal[]
 }
 
 model Deal {
-  id String @id @default(cuid())
-  companyId String
-  opportunityId String?
-  demandId String?
-  sellerId String
-  buyerId String?
-  materialId String
-  quantity Decimal
-  buyRate Decimal
-  sellRate Decimal?
-  freightCost Decimal @default(0)
-  loadingCost Decimal @default(0)
-  otherCost Decimal @default(0)
-  expectedLandedCost Decimal?
-  expectedProfit Decimal?
-  expectedMargin Decimal?
-  procurementType String
-  status String
-  sellerCommitted Boolean @default(false)
-  buyerCommitted Boolean @default(false)
-  capitalExposure Boolean @default(false)
-  agreementSeller Boolean @default(false)
-  agreementBuyer Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  company Company @relation(fields:[companyId],references:[id])
-  opportunity Opportunity? @relation(fields:[opportunityId],references:[id])
-  demand BuyerDemand? @relation(fields:[demandId],references:[id])
-  seller Seller @relation(fields:[sellerId],references:[id])
-  buyer Buyer? @relation(fields:[buyerId],references:[id])
-  material Material @relation(fields:[materialId],references:[id])
-  stocks Stock[]
+  id                String        @id @default(cuid())
+  companyId         String
+  opportunityId     String?
+  demandId          String?
+  sellerId          String
+  buyerId           String?
+  materialId        String
+  quantity          Decimal       @db.Decimal(18,3)
+  buyRate           Decimal       @db.Decimal(18,4)
+  sellRate          Decimal?      @db.Decimal(18,4)
+  freightCost       Decimal       @default(0) @db.Decimal(18,2)
+  loadingCost       Decimal       @default(0) @db.Decimal(18,2)
+  otherCost         Decimal       @default(0) @db.Decimal(18,2)
+  expectedLandedCost Decimal?     @db.Decimal(18,2)
+  expectedProfit    Decimal?      @db.Decimal(18,2)
+  expectedMargin    Decimal?      @db.Decimal(8,4)
+  actualLandedCost  Decimal?      @db.Decimal(18,2)
+  actualProfit      Decimal?      @db.Decimal(18,2)
+  actualMargin      Decimal?      @db.Decimal(8,4)
+  procurementType   String
+  status            String
+  sellerCommitted   Boolean       @default(false)
+  buyerCommitted    Boolean       @default(false)
+  capitalExposure   Boolean       @default(false)
+  agreementSeller   Boolean       @default(false)
+  agreementBuyer    Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  company           Company       @relation(fields: [companyId], references: [id])
+  opportunity       Opportunity?  @relation(fields: [opportunityId], references: [id])
+  demand            BuyerDemand?  @relation(fields: [demandId], references: [id])
+  seller             Seller        @relation(fields: [sellerId], references: [id])
+  buyer              Buyer?        @relation(fields: [buyerId], references: [id])
+  material           Material      @relation(fields: [materialId], references: [id])
+  stocks             Stock[]
+  purchases          Purchase[]
+  salesOrders        SalesOrder[]
+  agreements         Agreement[]
 }
 
 model Stock {
-  id String @id @default(cuid())
-  companyId String
+  id            String     @id @default(cuid())
+  companyId     String
+  materialId    String
+  dealId        String?
+  warehouseId   String?
+  quantity      Decimal    @db.Decimal(18,3)
+  reservedQty   Decimal    @default(0) @db.Decimal(18,3)
+  unitCost      Decimal?   @db.Decimal(18,4)
+  status        String
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+  company       Company    @relation(fields: [companyId], references: [id])
+  material      Material   @relation(fields: [materialId], references: [id])
+  deal          Deal?      @relation(fields: [dealId], references: [id])
+  createdAt     DateTime   @default(now())
+}
+
+model Purchase {
+  id              String    @id @default(cuid())
+  companyId       String
+  dealId          String?
+  sellerId        String
+  materialId      String
+  warehouseId     String?
+  reference       String    @unique
+  purchaseType    String
+  quantity        Decimal   @db.Decimal(18,3)
+  rate            Decimal   @db.Decimal(18,4)
+  freightCost     Decimal   @default(0) @db.Decimal(18,2)
+  loadingCost     Decimal   @default(0) @db.Decimal(18,2)
+  otherCost       Decimal   @default(0) @db.Decimal(18,2)
+  status          String
+  expectedDate    DateTime?
+  receivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  company         Company   @relation(fields: [companyId], references: [id])
+  deal            Deal?     @relation(fields: [dealId], references: [id])
+  seller          Seller    @relation(fields: [sellerId], references: [id])
+  material        Material  @relation(fields: [materialId], references: [id])
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
+  payments        Payment[]
+}
+
+model SalesOrder {
+  id            String    @id @default(cuid())
+  companyId     String
+  dealId        String?
+  buyerId       String
+  materialId    String
+  reference     String    @unique
+  quantity      Decimal   @db.Decimal(18,3)
+  rate          Decimal   @db.Decimal(18,4)
+  status        String
+  dispatchDate  DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
+  company       Company   @relation(fields: [companyId], references: [id])
+  deal          Deal?     @relation(fields: [dealId], references: [id])
+  buyer         Buyer     @relation(fields: [buyerId], references: [id])
+  material      Material  @relation(fields: [materialId], references: [id])
+  payments      Payment[]
+}
+
+model Payment {
+  id           String      @id @default(cuid())
+  companyId    String
+  buyerId      String?
+  purchaseId   String?
+  salesOrderId String?
+  reference    String      @unique
+  type         String
+  amount       Decimal     @db.Decimal(18,2)
+  dueDate      DateTime?
+  paidAt       DateTime?
+  status       String
+  notes        String?
+  createdAt    DateTime    @default(now())
+  company      Company     @relation(fields: [companyId], references: [id])
+  buyer        Buyer?      @relation(fields: [buyerId], references: [id])
+  purchase     Purchase?   @relation(fields: [purchaseId], references: [id])
+  salesOrder   SalesOrder? @relation(fields: [salesOrderId], references: [id])
+}
+
+model Agreement {
+  id            String    @id @default(cuid())
+  companyId     String
+  dealId        String
+  side          String
+  status        String
+  version       Int       @default(1)
+  validFrom     DateTime?
+  validUntil    DateTime?
+  signedAt      DateTime?
+  documentUrl   String?
+  termsJson     Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  company       Company   @relation(fields: [companyId], references: [id])
+  deal          Deal      @relation(fields: [dealId], references: [id])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  type        String
+  reference   String?
+  storageKey  String
+  status      String   @default("Pending")
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+model PriceIntelligence {
+  id         String    @id @default(cuid())
+  companyId  String
   materialId String
-  dealId String?
-  quantity Decimal
-  status String
-  warehouse String?
+  source     String?
+  location   String?
+  rate       Decimal   @db.Decimal(18,4)
+  unit       String    @default("KG")
+  capturedAt DateTime  @default(now())
+  notes      String?
+  company    Company   @relation(fields: [companyId], references: [id])
+  material   Material  @relation(fields: [materialId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
   createdAt DateTime @default(now())
-  company Company @relation(fields:[companyId],references:[id])
-  material Material @relation(fields:[materialId],references:[id])
-  deal Deal? @relation(fields:[dealId],references:[id])
+  company   Company  @relation(fields: [companyId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 }
