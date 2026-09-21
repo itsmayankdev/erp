@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
   LayoutDashboard, PackageSearch, Zap, BriefcaseBusiness, FileCheck2,
   ShoppingCart, Boxes, ReceiptText, Truck, Users, Warehouse
@@ -23,8 +25,10 @@ const nav = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [collapsed,setCollapsed]=useState(false);
   return (
-    <aside className="sidebar">
+    <aside className={"sidebar "+(collapsed?"collapsed":"")}>
+      <button className="sidebarToggle" onClick={()=>setCollapsed(!collapsed)} title={collapsed?"Open menu":"Collapse menu"}>{collapsed?<PanelLeftOpen size={17}/>:<PanelLeftClose size={17}/>}</button>
       <Link href="/" className="brand">
         <div className="brandMark">E</div>
         <div><strong>ERP</strong><span>Steel Trading OS</span></div>
