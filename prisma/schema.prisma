@@ -38,6 +38,7 @@ model Company {
   payments        Payment[]
   agreements      Agreement[]
   documents       Document[]
+  documentSequences DocumentSequence[]
   priceIntel      PriceIntelligence[]
   auditLogs       AuditLog[]
   dealSources     DealSource[]
@@ -317,12 +318,28 @@ model Agreement {
   deal          Deal      @relation(fields: [dealId], references: [id])
 }
 
+model DocumentSequence {
+  id          String   @id @default(cuid())
+  companyId   String
+  type        String
+  year        Int
+  prefix      String
+  nextNumber  Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+  @@unique([companyId, type, year])
+}
+
 model Document {
   id          String   @id @default(cuid())
   companyId   String
   name        String
   type        String
   reference   String?
+  version     Int      @default(1)
+  sourceType  String?
+  sourceId    String?
   storageKey   String
   entityType  String?
   entityId    String?
