@@ -61,7 +61,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     columns = ["Deal", "Side", "Version", "Status", "Valid Until"];
   } else if (module === "buyer-demands") {
     rows = await prisma.buyerDemand.findMany({ where: { companyId: company.id }, include: { buyer: true, material: true }, orderBy: { updatedAt: "desc" } });
-    columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
+    columns = ["Buyer", "Material", "Qty", "Matched", "Fulfilled", "Target Rate", "Required By", "Status"];
   } else if (module === "sellers") {
     rows = await prisma.seller.findMany({ where: { companyId: company.id }, orderBy: { name: "asc" } });
     columns = ["Supplier", "Category", "City", "Phone", "Reliability"];
@@ -102,7 +102,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
             {module==="customers-and-buyers" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.email ?? "—"}</td><td>{r.creditLimit ? "₹"+Number(r.creditLimit).toLocaleString("en-IN") : "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="warehouses" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.capacity ? Number(r.capacity).toLocaleString("en-IN") : "—"}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="agreements" && <><td>{r.deal.id.slice(0,10)}</td><td>{r.side}</td><td>v{r.version}</td><td><span className="status">{r.status}</span></td><td>{r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}</td></>}
-            {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{Number(r.matchedQuantity ?? 0).toLocaleString("en-IN")} {r.unit}</td><td>{Number(r.fulfilledQuantity ?? 0).toLocaleString("en-IN")} {r.unit}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="sellers" && <><td>{r.name}</td><td>{r.category ?? "—"}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.reliability ?? "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="materials" && <><td>{r.code ?? "—"}</td><td>{r.name}</td><td>{r.grade ?? "—"}</td><td>{r.specification ?? "—"}</td><td>{r.unit}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="payments" && <><td>{r.reference}</td><td>{r.type}</td><td>{r.buyer?.name ?? r.purchase?.sellerId ?? "—"}</td><td>₹{Number(r.amount).toLocaleString("en-IN")}</td><td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td></>}
