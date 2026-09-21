@@ -7,6 +7,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
  const [sellers,setSellers]=useState(initialSellers),[buyers,setBuyers]=useState(initialBuyers),[materials,setMaterials]=useState(initialMaterials);
  const [sellerId,setSellerId]=useState(""),[buyerId,setBuyerId]=useState(""),[materialId,setMaterialId]=useState("");
  const [newParty,setNewParty]=useState(false),[partyName,setPartyName]=useState(""),[partyPhone,setPartyPhone]=useState(""),[partyEmail,setPartyEmail]=useState(""),[partyCity,setPartyCity]=useState("");
+ const [newPartyMode,setNewPartyMode]=useState(false);
  const [newMaterial,setNewMaterial]=useState(false),[materialName,setMaterialName]=useState(""),[materialGrade,setMaterialGrade]=useState(""),[materialSpec,setMaterialSpec]=useState(""),[materialUnit,setMaterialUnit]=useState("KG");
  const [form,setForm]=useState<any>({quantity:"",unit:"KG",askingRate:"",marketRate:"",sourceType:"Surplus / Dead Stock",status:"Open",location:"",notes:"",targetRate:"",requiredBy:""});
  const [saving,setSaving]=useState(false),[saved,setSaved]=useState("");
@@ -36,7 +37,7 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   if(!r.ok){alert((await r.json()).error||"Unable to create company");return;}
   const x=await r.json();
   if(tab==="supply"){setSellers((a:any[])=>[...a,x]);setSellerId(x.id);}else{setBuyers((a:any[])=>[...a,x]);setBuyerId(x.id);}
-  setNewParty(false);setPartyName("");setPartyPhone("");setPartyEmail("");setPartyCity("");
+  setNewParty(false);setNewPartyMode(false);setPartyName("");setPartyPhone("");setPartyEmail("");setPartyCity("");
  }
  async function save(){
   if(!materialId||(!sellerId&&tab==="supply")||(!buyerId&&tab==="demand")||!form.quantity)return alert("Please select the company, material and quantity.");
@@ -53,17 +54,18 @@ export default function SupplyDemandDesk({initialSellers,initialBuyers,initialMa
   <section className="sdPanel">
    <div className="sdHead"><div><span className="eyebrow">{tab==="supply"?"SUPPLY REGISTER":"DEMAND REGISTER"}</span><h2>{tab==="supply"?"Record material available from any source":"Record exactly what a buyer is looking for"}</h2><p>{tab==="supply"?"Factory surplus, dead stock, direct company purchase, trader source or any other known supply.":"Store buyer, material, specification, quantity, target rate and requirement details so they can be matched later."}</p></div><div className="sdCount"><b>{tab==="supply"?sellers.length:buyers.length}</b><small>{tab==="supply"?"known sources":"known buyers"}</small></div></div>
    <div className="sdForm">
-    <div className="sdSection"><div className="sdSectionTitle"><b>{tab==="supply"?"Source / Company":"Buyer / Company"}</b><button onClick={()=>setNewParty(true)}><UserPlus size={13}/> Add new company</button></div>
+    <div className="sdSection"><div className="sdSectionTitle"><b>{tab==="supply"?"Source / Company":"Buyer / Company"}</b><span>Select an existing company or choose Add new company in the same field.</span></div>
       <div className="sdGrid">
-       <label>Company / source<select value={tab==="supply"?sellerId:buyerId} onChange={e=>chooseParty(e.target.value)}><option value="">Select existing company...</option>{partyList.map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-       <label>Phone<input value={(tab==="supply"?selectedSeller?.phone:selectedBuyer?.phone)||""} readOnly placeholder="Auto-filled from company"/></label>
-       <label>Email<input value={(tab==="supply"?selectedSeller?.email:selectedBuyer?.email)||""} readOnly placeholder="Auto-filled from company"/></label>
-       <label>City / location<input value={(tab==="supply"?selectedSeller?.city:selectedBuyer?.city)||""} readOnly placeholder="Auto-filled from company"/></label>
+       <label>{tab==="supply"?"Company / source":"Buyer / company"}{newPartyMode?<input autoFocus value={partyName} onChange={e=>setPartyName(e.target.value)} placeholder="Type new company name..."/>:<select value={tab==="supply"?sellerId:buyerId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewPartyMode(true);setNewParty(true);if(tab==="supply")setSellerId("");else setBuyerId("");}else chooseParty(v)}}><option value="">Select existing company...</option>{partyList.map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}<option value="__new__">＋ Add new company</option></select>}</label>
+       <label>Phone<input value={newPartyMode?partyPhone:((tab==="supply"?selectedSeller?.phone:selectedBuyer?.phone)||"")} onChange={e=>newPartyMode&&setPartyPhone(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"Phone":"Auto-filled from company"}/></label>
+       <label>Email<input value={newPartyMode?partyEmail:((tab==="supply"?selectedSeller?.email:selectedBuyer?.email)||"")} onChange={e=>newPartyMode&&setPartyEmail(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"Email":"Auto-filled from company"}/></label>
+       <label>City / location<input value={newPartyMode?partyCity:((tab==="supply"?selectedSeller?.city:selectedBuyer?.city)||"")} onChange={e=>newPartyMode&&setPartyCity(e.target.value)} readOnly={!newPartyMode} placeholder={newPartyMode?"City":"Auto-filled from company"}/></label>
       </div>
+      {newPartyMode&&<div className="inlineActions"><button onClick={()=>{setNewPartyMode(false);setNewParty(false);setPartyName("");setPartyPhone("");setPartyEmail("");setPartyCity("");}}>Cancel</button><button className="saveBtn" onClick={addParty}><Plus size={13}/> Save company</button></div>}
     </div>
     <div className="sdSection"><div className="sdSectionTitle"><b>Material details</b><span>Existing master data auto-fills the known specification.</span></div>
       <div className="sdGrid">
-       <label>Material<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewMaterial(true);setMaterialId("");}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select></label>
+       <label>Material{newMaterial?<input autoFocus value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="Type new material name..."/>:<select value={materialId} onChange={e=>{const v=e.target.value;if(v==="__new__"){setNewMaterial(true);setMaterialId("");}else chooseMaterial(v)}}><option value="">Select material...</option>{materials.map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.grade?" · "+x.grade:""}</option>)}<option value="__new__">＋ Add new material</option></select>}</label>
        <label>Grade<input value={selectedMaterial?.grade||""} readOnly placeholder="Auto-filled"/></label>
        <label>Specification<input value={selectedMaterial?.specification||""} readOnly placeholder="Auto-filled"/></label>
        <label>Unit<input value={form.unit||""} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
