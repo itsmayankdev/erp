@@ -13,10 +13,10 @@ export default function SupplyDemandRegister({mode,rows}:Props){
   const [open,setOpen]=useState<string|null>(null),[selected,setSelected]=useState<string[]>([]),[deleting,setDeleting]=useState(false);
   const isSupply=mode==="suppliers";
 
-  const materials=useMemo(()=>Array.from(new Set(rows.map(r=>r.material?.name).filter(Boolean))).sort(),[rows]);
+  const materials=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.material?.name):[r.material?.name]).filter(Boolean))).sort(),[rows,isSupply]);
   const parties=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.name:r.buyer?.name)).filter(Boolean))).sort(),[rows]);
   const cities=useMemo(()=>Array.from(new Set(rows.map(r=>(isSupply?r.seller?.city:r.buyer?.city)||r.location).filter(Boolean))).sort(),[rows]);
-  const types=useMemo(()=>Array.from(new Set(rows.map(r=>r.sourceType).filter(Boolean))).sort(),[rows]);
+  const types=useMemo(()=>Array.from(new Set(rows.flatMap(r=>isSupply?(r.supplies||[]).map((s:any)=>s.sourceType):[r.sourceType]).filter(Boolean))).sort(),[rows,isSupply]);
 
   const filtered=useMemo(()=>{
     const needle=q.trim().toLowerCase();
@@ -39,7 +39,7 @@ export default function SupplyDemandRegister({mode,rows}:Props){
     setDeleting(true);
     try{
       for(const id of ids){
-        // Supplier rows without an opportunity use a synthetic "seller-" id.\n        // Delete the actual supplier master in that case; otherwise delete the supply record.\n        const isSupplierMasterRow = isSupply && id.startsWith("seller-");\n        const module = isSupplierMasterRow ? "sellers" : (isSupply ? "opportunities" : "buyer-demands");\n        const recordId = isSupplierMasterRow ? id.slice("seller-".length) : id;\n        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
+        const module = isSupply ? "sellers" : "buyer-demands";\n        const recordId = id;\n        const res=await fetch("/api/records?module="+module,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:recordId})});
         const data=await res.json();
         if(!res.ok)throw new Error(data.error||"Unable to delete record");
       }
@@ -68,19 +68,19 @@ export default function SupplyDemandRegister({mode,rows}:Props){
       <th>{isSupply?"Supplier":"Buyer"}</th><th>Contact</th><th>Material</th><th>Grade / Specification</th><th>Qty / Weight</th><th>{isSupply?"Buy Rate":"Target Rate"}</th>{isSupply&&<th>Market Rate</th>}<th>{isSupply?"Source Type":"Required By"}</th><th>Location</th><th>Status</th><th>Actions</th>
     </tr></thead><tbody>
       {filtered.map((r:any)=>{
-        const p=isSupply?r.seller:r.buyer; const expanded=open===r.id; const checked=selected.includes(r.id);
+        const p=isSupply?r.seller:r.buyer; const supplies=isSupply?(r.supplies||[]):[r]; const expanded=open===r.id; const checked=selected.includes(r.id);\n        const materialNames=Array.from(new Set(supplies.map((s:any)=>s.material?.name).filter(Boolean)));\n        const grades=Array.from(new Set(supplies.map((s:any)=>s.material?.grade).filter(Boolean)));\n        const specs=Array.from(new Set(supplies.map((s:any)=>s.material?.specification).filter(Boolean)));\n        const totalQty=supplies.reduce((sum:number,s:any)=>sum+(Number(s.quantity)||0),0);\n        const rates=Array.from(new Set(supplies.map((s:any)=>s.askingRate).filter((v:any)=>v!=null)));\n        const marketRates=Array.from(new Set(supplies.map((s:any)=>s.estimatedMarketRate).filter((v:any)=>v!=null)));\n        const sourceTypes=Array.from(new Set(supplies.map((s:any)=>s.sourceType).filter(Boolean)));\n        const rowStatuses=Array.from(new Set(supplies.map((s:any)=>s.status).filter(Boolean)));
         return <tr key={r.id} className={expanded?"expandedRow":""}>
           <td><button className="selectAllBtn" onClick={()=>toggle(r.id)}>{checked?<CheckSquare size={15}/>:<Square size={15}/>}</button></td>
           <td><b>{p?.name||"—"}</b><small>{p?.category||""}</small></td>
           <td><span>{p?.phone||"—"}</span><small>{p?.email||""}</small></td>
-          <td><b>{r.material?.name||"—"}</b><small>{r.material?.unit||r.unit||"KG"}</small></td>
-          <td>{r.material?.grade||"—"}<small>{r.material?.specification||r.notes||""}</small></td>
-          <td>{qty(r.quantity,r.unit)}</td><td>{money(isSupply?r.askingRate:r.targetRate)}</td>
-          {isSupply&&<td>{money(r.estimatedMarketRate)}</td>}
-          <td>{isSupply?r.sourceType:(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
-          <td>{r.location||p?.city||"—"}</td><td><span className="status">{r.status||"Open"}</span></td>
+          <td><b>{materialNames.length?materialNames.join(", "):"No supply recorded"}</b><small>{isSupply?materialNames.length+" material"+(materialNames.length===1?"":"s"):(r.material?.unit||r.unit||"KG")}</small></td>
+          <td>{grades.length?grades.join(", "):"—"}<small>{specs.length?specs.join(" · "):"—"}</small></td>
+          <td>{totalQty?qty(totalQty,supplies[0]?.unit||r.unit||"KG"):"—"}</td><td>{isSupply?(rates.length===1?money(rates[0]):rates.length?rates.length+" rates":"—"):money(r.targetRate)}</td>
+          {isSupply&&<td>{marketRates.length===1?money(marketRates[0]):marketRates.length?marketRates.length+" rates":"—"}</td>}
+          <td>{isSupply?(sourceTypes.length===1?sourceTypes[0]:sourceTypes.length?sourceTypes.length+" types":"—"):(r.requiredBy?new Date(r.requiredBy).toLocaleDateString("en-IN"):"—")}</td>
+          <td>{p?.city||r.location||"—"}</td><td><span className="status">{rowStatuses.length===1?rowStatuses[0]:rowStatuses.length?rowStatuses.length+" statuses":"No active supply"}</span></td>
           <td><div className="registerActions"><button className="registerExpand" onClick={()=>setOpen(expanded?null:r.id)} title="View details">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button><button className="registerDelete" onClick={()=>remove([r.id])} title="Delete record" disabled={deleting}><Trash2 size={14}/></button></div></td>
-          {expanded&&<td colSpan={12} className="registerDetails"><div><b>Record details</b><span>Company: {p?.name||"—"}</span><span>Phone: {p?.phone||"—"}</span><span>Email: {p?.email||"—"}</span><span>Material: {r.material?.name||"—"}</span><span>Grade: {r.material?.grade||"—"}</span><span>Specification: {r.material?.specification||"—"}</span><span>Notes: {r.notes||"—"}</span></div></td>}
+          {expanded&&<td colSpan={12} className="registerDetails"><div><b>{isSupply?"Supplier details":"Requirement details"}</b><span>Company: {p?.name||"—"}</span><span>Phone: {p?.phone||"—"}</span><span>Email: {p?.email||"—"}</span><span>City: {p?.city||"—"}</span>{isSupply?(supplies.length?<div className="registerSupplyList">{supplies.map((s:any)=><div key={s.id}><b>{s.material?.name||"Unknown material"}</b><span>{qty(s.quantity,s.unit)}</span><span>Buy {money(s.askingRate)}</span><span>Market {money(s.estimatedMarketRate)}</span><span>{s.sourceType||"—"}</span><span>{s.location||"—"}</span><span>{s.status||"—"}</span></div>)}</div>:<span>No supply records yet.</span>):<><span>Material: {r.material?.name||"—"}</span><span>Grade: {r.material?.grade||"—"}</span><span>Specification: {r.material?.specification||"—"}</span><span>Quantity: {qty(r.quantity,r.unit)}</span><span>Target rate: {money(r.targetRate)}</span><span>Notes: {r.notes||"—"}</span></>}</div></td>}
         </tr>
       })}
       {!filtered.length&&<tr><td colSpan={isSupply?12:11} className="emptyRegister">No matching records. Try clearing a filter or add a new record from Supply & Demand.</td></tr>}
