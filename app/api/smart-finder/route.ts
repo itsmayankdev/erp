@@ -17,7 +17,7 @@ export async function GET(req:NextRequest){
 
   const buyerDemand=demandId?await prisma.buyerDemand.findFirst({where:{companyId:company.id,id:demandId},include:{material:true,buyer:true}}):buyerId?await prisma.buyerDemand.findFirst({where:{companyId:company.id,buyerId,status:{notIn:["Closed","Matched","Cancelled"]}},include:{material:true,buyer:true},orderBy:{updatedAt:"desc"}}):null;
   const effectiveMaterialId=materialId||buyerDemand?.materialId||"";
-  const effectiveQuantity=requested||Number(buyerDemand?.quantity||0);
+  const effectiveQuantity=requested||Math.max(0,Number(buyerDemand?.quantity||0)-Number(buyerDemand?.matchedQuantity||0));
   const effectiveMaxRate=maxRate||Number(buyerDemand?.targetRate||0);
   const [opportunities,stocks]=await Promise.all([
     prisma.opportunity.findMany({where:{companyId:company.id,status:{notIn:["Closed","Cancelled","Converted"]}},include:{seller:true,material:true},orderBy:{updatedAt:"desc"}}),
@@ -30,7 +30,7 @@ export async function GET(req:NextRequest){
     const materialMatch=!effectiveMaterialId||o.materialId===effectiveMaterialId;
     const queryMatch=!q||text.includes(q)||q.split(/\s+/).every(x=>text.includes(x));
     const locationMatch=!location||String(o.location||"").toLowerCase().includes(location);
-    const qty=Number(o.quantity);
+    const qty=Math.max(0,Number(o.quantity)-Number(o.allocatedQuantity||0));
     const rate=o.askingRate?Number(o.askingRate):null;
     if(!materialMatch||!queryMatch||!locationMatch||(effectiveMaxRate&&rate&&rate>effectiveMaxRate))continue;
     let score=55;
@@ -57,5 +57,5 @@ export async function GET(req:NextRequest){
   results.sort((a,b)=>b.matchScore-a.matchScore || (a.rate??999999)-(b.rate??999999));
   const totalAvailable=results.reduce((n,r)=>n+r.quantity,0);
   const rates=results.map(r=>r.rate).filter((x:any)=>x!==null);
-  return NextResponse.json({results,summary:{buyerDemand:buyerDemand?.id||null,buyer:buyerDemand?.buyer?.name||null,requestedQuantity:effectiveQuantity,requestedMaterial:buyerDemand?.material?.name||null,requestedLocation:buyerDemand?.location||null,targetRate:buyerDemand?.targetRate?Number(buyerDemand.targetRate):null,matches:results.length,totalAvailable,lowestRate:rates.length?Math.min(...rates):null,combinations:effectiveQuantity&&totalAvailable>=effectiveQuantity?1:0}});
+  return NextResponse.json({results,summary:{buyerDemand:buyerDemand?.id||null,buyer:buyerDemand?.buyer?.name||null,requestedQuantity:effectiveQuantity,requestedMaterial:buyerDemand?.material?.name||null,requestedLocation:buyerDemand?.location||null,targetRate:buyerDemand?.targetRate?Number(buyerDemand.targetRate):null,matches:results.length,totalAvailable,lowestRate:rates.length?Math.min(...rates):null,combinations:effectiveQuantity&&totalAvailable>=effectiveQuantity?1:0, coverage:effectiveQuantity?Math.min(100,(totalAvailable/effectiveQuantity)*100):0}});
 }
