@@ -121,19 +121,32 @@ model BuyerDemand {
 model Deal {
   id String @id @default(cuid())
   companyId String
+  opportunityId String?
+  demandId String?
   sellerId String
   buyerId String?
   materialId String
   quantity Decimal
   buyRate Decimal
   sellRate Decimal?
+  freightCost Decimal @default(0)
+  loadingCost Decimal @default(0)
+  otherCost Decimal @default(0)
+  expectedLandedCost Decimal?
+  expectedProfit Decimal?
+  expectedMargin Decimal?
   procurementType String
   status String
+  sellerCommitted Boolean @default(false)
+  buyerCommitted Boolean @default(false)
+  capitalExposure Boolean @default(false)
   agreementSeller Boolean @default(false)
   agreementBuyer Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   company Company @relation(fields:[companyId],references:[id])
+  opportunity Opportunity? @relation(fields:[opportunityId],references:[id])
+  demand BuyerDemand? @relation(fields:[demandId],references:[id])
   seller Seller @relation(fields:[sellerId],references:[id])
   buyer Buyer? @relation(fields:[buyerId],references:[id])
   material Material @relation(fields:[materialId],references:[id])
