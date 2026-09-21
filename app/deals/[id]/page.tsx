@@ -14,7 +14,8 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       agreements: { orderBy: { updatedAt: "desc" } },
       purchases: { include: { warehouse: true }, orderBy: { createdAt: "desc" } },
       salesOrders: { orderBy: { createdAt: "desc" } },
-      stocks: { include: { warehouse: true }, orderBy: { createdAt: "desc" } }
+      stocks: { include: { warehouse: true, stockAllocations: true }, orderBy: { createdAt: "desc" } },
+      dealSources: { include: { seller: true, opportunity: true }, orderBy: { createdAt: "asc" } }
     }
   });
   if (!deal) notFound();
@@ -43,7 +44,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
         <div>
           <p className="eyebrow">DEAL WORKSPACE</p>
           <h1>{deal.id.slice(0, 12)}</h1>
-          <p className="muted">{deal.material.name} · {deal.seller.name} → {deal.buyer?.name ?? "Buyer not matched"}</p>
+          <p className="muted">{deal.material.name} · {deal.dealSources?.length > 1 ? "Multiple suppliers" : deal.seller.name} → {deal.buyer?.name ?? "Buyer not matched"}</p>
         </div>
         <Link className="secondaryBtn" href="/deals">← All Deals</Link>
       </header>
