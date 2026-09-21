@@ -192,7 +192,7 @@ model Deal {
   company           Company       @relation(fields: [companyId], references: [id])
   opportunity       Opportunity?  @relation(fields: [opportunityId], references: [id])
   demand            BuyerDemand?  @relation(fields: [demandId], references: [id])
-  seller             Seller        @relation(fields: [sellerId], references: [sellerId])
+  seller             Seller        @relation(fields: [sellerId], references: [id])
   buyer              Buyer?        @relation(fields: [buyerId], references: [id])
   material           Material      @relation(fields: [materialId], references: [id])
   stocks             Stock[]
