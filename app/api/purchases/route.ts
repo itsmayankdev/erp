@@ -38,6 +38,15 @@ export async function POST(req: NextRequest) {
     const purchase = await prisma.$transaction(async tx => {
       let source: any = null;
 
+      const [seller, material, warehouse] = await Promise.all([
+        tx.seller.findFirst({ where: { id: body.sellerId, companyId: body.companyId } }),
+        tx.material.findFirst({ where: { id: body.materialId, companyId: body.companyId } }),
+        body.warehouseId ? tx.warehouse.findFirst({ where: { id: body.warehouseId, companyId: body.companyId } }) : Promise.resolve(null)
+      ]);
+      if (!seller) throw new Error("Seller does not belong to this company.");
+      if (!material) throw new Error("Material does not belong to this company.");
+      if (body.warehouseId && !warehouse) throw new Error("Warehouse does not belong to this company.");
+
       if (body.dealSourceId) {
         source = await tx.dealSource.findFirst({
           where: { id: body.dealSourceId, companyId: body.companyId },
@@ -59,7 +68,7 @@ export async function POST(req: NextRequest) {
         }
 
         const received = await tx.purchase.aggregate({
-          where: { dealSourceId: source.id, status: "Received" },
+          where: { dealSourceId: source.id, status: { in: ["Received", "Partially Received"] } },
           _sum: { quantity: true }
         });
 
