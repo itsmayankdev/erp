@@ -48,14 +48,14 @@ export default async function Home() {
     prisma.stock.findMany({ where: { companyId: company.id }, select: { quantity: true, unitCost: true } }),
     prisma.payment.aggregate({ where: { companyId: company.id, type: "Receivable", status: { not: "Paid" } }, _sum: { amount: true } }),
     prisma.payment.aggregate({ where: { companyId: company.id, type: "Payable", status: { not: "Paid" } }, _sum: { amount: true } }),
-    prisma.purchase.aggregate({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, _sum: { quantity: true, rate: true } }),
-    prisma.salesOrder.aggregate({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, _sum: { quantity: true, rate: true } }),
+    prisma.purchase.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, select: { quantity: true, rate: true, freightCost: true, loadingCost: true, otherCost: true } }),
+    prisma.salesOrder.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, select: { quantity: true, rate: true } }),
     prisma.deal.findMany({ where: { companyId: company.id, status: { not: "Closed" } }, include: { seller: true, buyer: true, material: true }, orderBy: { updatedAt: "desc" }, take: 8 })
   ]);
 
   const inventoryValue = inventory.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unitCost ?? 0), 0);
-  const todayPurchase = Number(todayPurchases._sum.quantity ?? 0) * Number(todayPurchases._sum.rate ?? 0);
-  const todaySales = Number(todaySalesAgg._sum.quantity ?? 0) * Number(todaySalesAgg._sum.rate ?? 0);
+  const todayPurchase = todayPurchases.reduce((sum, p) => sum + Number(p.quantity)*Number(p.rate) + Number(p.freightCost||0) + Number(p.loadingCost||0) + Number(p.otherCost||0), 0);
+  const todaySales = todaySalesAgg.reduce((sum, s) => sum + Number(s.quantity)*Number(s.rate), 0);
   const todayProfit = todaySales - todayPurchase;
 
   return (
