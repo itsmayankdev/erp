@@ -38,11 +38,20 @@ export async function POST(req: NextRequest) {
     const body = schema.parse(await req.json());
 
     const order = await prisma.$transaction(async tx => {
+      const [buyer, material, deal] = await Promise.all([
+        tx.buyer.findFirst({ where: { id: body.buyerId, companyId: body.companyId } }),
+        tx.material.findFirst({ where: { id: body.materialId, companyId: body.companyId } }),
+        body.dealId ? tx.deal.findFirst({ where: { id: body.dealId, companyId: body.companyId } }) : Promise.resolve(null)
+      ]);
+      if (!buyer) throw new Error("Buyer does not belong to this company.");
+      if (!material) throw new Error("Material does not belong to this company.");
+      if (body.dealId && (!deal || deal.materialId !== body.materialId || (deal.buyerId && deal.buyerId !== body.buyerId))) throw new Error("Sales order deal linkage is invalid.");
+
       const stocks = await tx.stock.findMany({
         where: {
           companyId: body.companyId,
           materialId: body.materialId,
-          status: { in: ["Available", "Reserved", "Incoming"] },
+          status: { in: ["Available", "Reserved"] },
         },
         include: { warehouse: true },
         orderBy: { createdAt: "asc" },
