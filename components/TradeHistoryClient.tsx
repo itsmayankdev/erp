@@ -18,7 +18,7 @@ export default function TradeHistoryClient({counterparties,deals}:any){
    if(companyId && d.counterpartyId!==companyId)return false;
    if(role!=="all"&&d.role!==role)return false;
    if(status&&d.status!==status)return false;
-   if(q){const s=[d.id,d.material?.name,d.material?.grade,d.material?.specification,d.buyer?.name,d.seller?.name,d.status,d.procurementType].join(" ").toLowerCase();if(!s.includes(q.toLowerCase()))return false;}
+   if(q){const s=[d.dealNumber,d.id,d.material?.name,d.material?.grade,d.material?.specification,d.buyer?.name,d.seller?.name,d.status,d.procurementType].join(" ").toLowerCase();if(!s.includes(q.toLowerCase()))return false;}
    return true;
  }),[deals,companyId,role,status,q]);
  const stats=useMemo(()=>filtered.reduce((a:any,d:any)=>{
@@ -52,7 +52,7 @@ export default function TradeHistoryClient({counterparties,deals}:any){
     {filtered.map((d:any)=><React.Fragment key={d.id+"-"+d.role}>
     <tr>
       <td>{new Date(d.createdAt).toLocaleDateString("en-IN")}</td>
-      <td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td>
+      <td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.dealNumber||d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td>
       <td><span className="tradeRole">{d.role==="seller"?"Supplier / Seller":"Customer / Buyer"}</span><small>{d.counterpartyName}</small></td>
       <td><button className="tradeExpandBtn" onClick={()=>setExpanded(expanded===d.id+"-"+d.role?null:d.id+"-"+d.role)}><b>{d.material?.name}</b><small>{[d.material?.grade,d.material?.specification].filter(Boolean).join(" · ")} · {expanded===d.id+"-"+d.role?"Hide details":"View details"}</small></button></td>
       <td>{qty(d.quantity,d.material?.unit||"KG")}</td>
