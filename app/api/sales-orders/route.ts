@@ -82,13 +82,17 @@ export async function POST(req: NextRequest) {
 
         const take = Math.min(remaining, item.available);
 
-        await tx.stock.update({
-          where: { id: item.stock.id },
-          data: {
-            reservedQty: { increment: take },
-            status: "Reserved",
+        const reserved = await tx.stock.updateMany({
+          where: {
+            id: item.stock.id,
+            companyId: body.companyId,
+            materialId: body.materialId,
+            status: { in: ["Available", "Reserved"] },
+            AND: [{ quantity: { gte: item.stock.quantity } }, { reservedQty: { lte: Number(item.stock.quantity) - take } }]
           },
+          data: { reservedQty: { increment: take }, status: "Reserved" }
         });
+        if (reserved.count !== 1) throw new Error("Stock changed while this order was being allocated. Please retry.");
 
         await tx.stockAllocation.create({
           data: {
@@ -115,7 +119,7 @@ export async function POST(req: NextRequest) {
           },
         },
       });
-    });
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json(order, { status: 201 });
   } catch (e) {
