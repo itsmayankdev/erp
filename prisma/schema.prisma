@@ -88,6 +88,10 @@ model Buyer {
   phone        String?
   email       String?
   city        String?
+  address     String?
+  state       String?
+  pincode     String?
+  taxId       String?
   creditLimit Decimal?      @db.Decimal(18,2)
   createdAt   DateTime      @default(now())
   company     Company       @relation(fields: [companyId], references: [id])
