@@ -51,6 +51,23 @@ export async function POST(req: NextRequest) {
         if(body.amount>outstanding+0.0001) throw new Error(`Receipt exceeds outstanding receivable of ₹${outstanding.toLocaleString("en-IN")}.`);
       }
       const reference=body.reference||`PAY-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${Date.now().toString().slice(-6)}`;
+      let finalStatus=body.status;
+      if(body.purchaseId){
+        const purchase=await tx.purchase.findFirst({where:{id:body.purchaseId,companyId:body.companyId}});
+        if(purchase){
+          const already=await tx.payment.aggregate({where:{companyId:body.companyId,purchaseId:body.purchaseId,status:{not:"Cancelled"}},_sum:{amount:true}});
+          const total=Number(purchase.quantity)*Number(purchase.rate)+Number(purchase.freightCost)+Number(purchase.loadingCost)+Number(purchase.otherCost);
+          finalStatus=Number(already._sum.amount||0)+body.amount>=total-0.0001?"Paid":"Partial";
+        }
+      }
+      if(body.salesOrderId){
+        const order=await tx.salesOrder.findFirst({where:{id:body.salesOrderId,companyId:body.companyId}});
+        if(order){
+          const already=await tx.payment.aggregate({where:{companyId:body.companyId,salesOrderId:body.salesOrderId,status:{not:"Cancelled"}},_sum:{amount:true}});
+          const total=Number(order.quantity)*Number(order.rate);
+          finalStatus=Number(already._sum.amount||0)+body.amount>=total-0.0001?"Paid":"Partial";
+        }
+      }
       return tx.payment.create({
         data:{
           companyId:body.companyId,
@@ -60,7 +77,7 @@ export async function POST(req: NextRequest) {
           reference,type:body.type,amount:body.amount,
           dueDate:body.dueDate||undefined,
           paidAt:body.paidAt||new Date(),
-          status:body.status,
+          status:finalStatus,
           notes:body.notes||undefined
         },
         include:{buyer:true,purchase:{include:{seller:true}},salesOrder:{include:{buyer:true}}}
