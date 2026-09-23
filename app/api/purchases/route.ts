@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
         where: { id: row.id },
         include: { seller: true, material: true, warehouse: true, dealSource: { include: { seller: true } } }
       });
-    });
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json(purchase, { status: 201 });
   } catch (e) {
