@@ -100,3 +100,14 @@
 @media(max-width:1200px){.managementKpis{grid-template-columns:repeat(3,minmax(0,1fr))}.managementGrid{grid-template-columns:1fr}}
 @media(max-width:800px){.reportFilterBar{align-items:flex-start;flex-direction:column}.reportFilterBar form{width:100%;flex-wrap:wrap}.reportFilterBar input{width:100%}.reportFilterBar label{flex:1;min-width:130px}.managementKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.managementSplit{grid-template-columns:1fr}.trendChart{overflow-x:auto;justify-content:flex-start}.trendColumn{flex:0 0 60px}}
 @media(max-width:600px){.managementKpis{grid-template-columns:1fr}.reportFilterBar form{display:grid;grid-template-columns:1fr 1fr}.reportFilterBar form .primaryBtn,.reportFilterBar form .secondaryBtn{width:100%;justify-content:center}}
+
+
+/* Commercial document actions */
+.documentActionGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 16px 16px}
+.documentAction{min-height:86px;border:1px solid #dce4ee;border-radius:8px;background:#fbfcfe;padding:13px;text-align:left;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:9px;cursor:pointer;color:#24405f;font-family:"DM Sans",sans-serif}
+.documentAction:hover{border-color:#8fb1df;background:#f5f9ff;box-shadow:0 4px 14px rgba(35,75,125,.07)}
+.documentAction svg{grid-row:1 / span 2;margin-top:2px;color:#2d68bd}
+.documentAction span{font-size:10px;font-weight:800;line-height:1.35}
+.documentAction small{margin-top:5px;font-size:8px;color:#8491a2}
+@media(max-width:900px){.documentActionGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.documentActionGrid{grid-template-columns:1fr}}
