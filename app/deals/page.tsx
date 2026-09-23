@@ -8,14 +8,15 @@ export default async function DealsPage(){
  if(!company)return <main className="modulePage"><p>No company found.</p></main>;
  const deals=await prisma.deal.findMany({where:{companyId:company.id},include:{seller:true,buyer:true,material:true},orderBy:{updatedAt:"desc"}});
  const safe=(n:any)=>Number(n||0);
- const shortName=(name:string)=>{const token=(name||"UNMATCHED").trim().split(/\\s+/)[0].replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return token||"UNMATCHED"};
+ const shortName=(name:string)=>{const token=(name||"UNMATCHED").replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return token.slice(0,3)||"UNM"};
  const pairKey=(d:any)=>[d.sellerId,d.buyerId||"UNMATCHED"].join("|");
  const pairCounts=new Map<string,number>();
- [...deals].reverse().forEach((d:any)=>{const key=pairKey(d);pairCounts.set(key,(pairCounts.get(key)||0)+1);});
+ const dealSequences=new Map<string,number>();
+ [...deals].reverse().forEach((d:any)=>{const key=pairKey(d);const count=(pairCounts.get(key)||0)+1;pairCounts.set(key,count);dealSequences.set(d.id,count);});
  const dealName=(d:any)=>{
    const buyer=shortName(d.buyer?.name||"UNMATCHED");
    const seller=shortName(d.seller?.name||"UNKNOWN");
-   const count=pairCounts.get(pairKey(d))||1;
+   const count=dealSequences.get(d.id)||1;
    return `DL-${buyer}_${seller}_${count}`;
  };
  return <main className="modulePage">
