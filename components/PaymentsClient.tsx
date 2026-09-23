@@ -31,7 +31,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
  function startSettlement(r:any){
    const doc=documentBalances.find((d:any)=>(r.purchaseId&&d.kind==="purchase"&&d.id===r.purchaseId)||(r.salesOrderId&&d.kind==="salesOrder"&&d.id===r.salesOrderId));
    if(!doc||doc.outstanding<=0) return;
-   setForm({type:["Received","RECEIPT"].includes(r.type)?"Received":"Paid",documentId:doc.id,reference:"",amount:String(doc.outstanding),dueDate:"",notes:""});
+   setForm({type:doc.kind==="purchase"?"Paid":"Received",documentId:doc.id,reference:"",amount:String(doc.outstanding),dueDate:"",notes:""});
    setMessage("");
    setOpen(true);
  }
@@ -75,7 +75,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
     const counterparty=r.buyer?.name||r.purchase?.seller?.name||r.salesOrder?.buyer?.name||"—";
     const linked=r.purchase?.reference||r.salesOrder?.reference||"Unlinked";
     const doc=documentBalances.find((d:any)=>(r.purchaseId&&d.kind==="purchase"&&d.id===r.purchaseId)||(r.salesOrderId&&d.kind==="salesOrder"&&d.id===r.salesOrderId));
-    const paymentKey=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;    const isLatestPayment=latestPaymentIds.get(paymentKey)===r.id;    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0&&isLatestPayment?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>Pay remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
+    const paymentKey=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;    const isLatestPayment=latestPaymentIds.get(paymentKey)===r.id;    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.purchaseId?"Payable":r.salesOrderId?"Receivable":r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0&&isLatestPayment?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>Pay remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
    })}{!filtered.length&&<tr><td colSpan={9} className="emptyState">No payment records match this filter.</td></tr>}</tbody></table></div>
   </section>
 
@@ -83,8 +83,8 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    <div className="recordModal">
     <div className="modalHead"><div><p className="eyebrow">FINANCE</p><h2>Record payment</h2></div><button className="modalClose" onClick={()=>setOpen(false)}>×</button></div>
     <div className="formGrid">
-      <label>Payment type<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="Received">Received from customer</option><option value="Paid">Paid to supplier</option></select></label>
-      <label>Linked document<select value={form.documentId} onChange={e=>setForm({...form,documentId:e.target.value})}><option value="">Select purchase / sales order</option>{documentBalances.filter((d:any)=>form.type==="Received"?d.kind==="salesOrder":d.kind==="purchase").map((d:any)=><option key={d.kind+"-"+d.id} value={d.id}>{d.reference} · {d.party} · Outstanding {money(d.outstanding)}</option>)}</select></label>
+      <label>Payment direction<select value={form.type} disabled={!!form.documentId} onChange={e=>setForm({...form,type:e.target.value})}><option value="Received">Receive from customer</option><option value="Paid">Pay supplier</option></select>{form.documentId&&<small className="muted">Direction is locked to the linked document.</small>}</label>
+      <label>Linked document<select value={form.documentId} onChange={e=>{const id=e.target.value;const d=documentBalances.find((x:any)=>x.id===id);setForm({...form,documentId:id,type:d?.kind==="purchase"?"Paid":d?.kind==="salesOrder"?"Received":form.type})}}><option value="">Select purchase / sales order</option>{documentBalances.filter((d:any)=>form.type==="Received"?d.kind==="salesOrder":d.kind==="purchase").map((d:any)=><option key={d.kind+"-"+d.id} value={d.id}>{d.reference} · {d.party} · Outstanding {money(d.outstanding)}</option>)}</select></label>
       <label>Amount<input type="number" min="0" max={form.documentId ? (documentBalances.find((d:any)=>d.id===form.documentId)?.outstanding||undefined) : undefined} value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder={form.documentId ? `Outstanding ${money(documentBalances.find((d:any)=>d.id===form.documentId)?.outstanding||0)}` : "0"}/></label>
       <label>Reference<input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})} placeholder="Optional"/></label>
       <label>Due date<input type="date" value={form.dueDate} onChange={e=>setForm({...form,dueDate:e.target.value})}/></label>
