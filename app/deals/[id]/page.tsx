@@ -20,6 +20,23 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
   });
   if (!deal) notFound();
 
+  const companyDeals = await prisma.deal.findMany({
+    where: { companyId: deal.companyId },
+    select: { id: true, sellerId: true, buyerId: true, createdAt: true },
+    orderBy: { createdAt: "asc" }
+  });
+  const shortName = (name: string) => {
+    const token = (name || "UNMATCHED").trim().split(/\\s+/)[0].replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    return token || "UNMATCHED";
+  };
+  const pairKey = (d: any) => [d.sellerId, d.buyerId || "UNMATCHED"].join("|");
+  let sequence = 0;
+  for (const d of companyDeals) {
+    if (pairKey(d) === pairKey(deal)) sequence++;
+    if (d.id === deal.id) break;
+  }
+  const dealNumber = `DL-${shortName(deal.buyer?.name || "UNMATCHED")}_${shortName(deal.seller?.name || "UNKNOWN")}_${sequence || 1}`;
+
   const payments = await prisma.payment.findMany({
     where: {
       companyId: deal.companyId,
@@ -43,7 +60,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       <header className="moduleHeader">
         <div>
           <p className="eyebrow">DEAL WORKSPACE</p>
-          <h1>{deal.id.slice(0, 12)}</h1>
+          <h1>{dealNumber}</h1>
           <p className="muted">{deal.material.name} · {deal.dealSources?.length > 1 ? "Multiple suppliers" : deal.seller.name} → {deal.buyer?.name ?? "Buyer not matched"}</p>
         </div>
         <Link className="secondaryBtn" href="/deals">← All Deals</Link>
@@ -51,7 +68,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       <DealWorkspace
         deal={JSON.parse(JSON.stringify(deal))}
         payments={JSON.parse(JSON.stringify(payments))}
-        masters={JSON.parse(JSON.stringify({ buyers, sellers, materials, warehouses }))}
+        masters={JSON.parse(JSON.stringify({ buyers, sellers, materials, warehouses }))} dealNumber={dealNumber}
       />
     </main>
   );
