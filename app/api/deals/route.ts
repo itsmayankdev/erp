@@ -22,6 +22,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = dealSchema.parse(await req.json());
+    const refs = await prisma.$transaction([
+      prisma.seller.findFirst({ where: { id: body.sellerId, companyId: body.companyId } }),
+      body.buyerId ? prisma.buyer.findFirst({ where: { id: body.buyerId, companyId: body.companyId } }) : Promise.resolve(null),
+      prisma.material.findFirst({ where: { id: body.materialId, companyId: body.companyId } }),
+      body.opportunityId ? prisma.opportunity.findFirst({ where: { id: body.opportunityId, companyId: body.companyId } }) : Promise.resolve(null),
+      body.demandId ? prisma.buyerDemand.findFirst({ where: { id: body.demandId, companyId: body.companyId } }) : Promise.resolve(null)
+    ]);
+    if (!refs[0]) throw new Error("Seller does not belong to this company.");
+    if (body.buyerId && !refs[1]) throw new Error("Buyer does not belong to this company.");
+    if (!refs[2]) throw new Error("Material does not belong to this company.");
+    if (body.opportunityId && (!refs[3] || refs[3].materialId !== body.materialId || refs[3].sellerId !== body.sellerId)) throw new Error("Opportunity is invalid for this deal.");
+    if (body.demandId && (!refs[4] || refs[4].materialId !== body.materialId || (body.buyerId && refs[4].buyerId !== body.buyerId))) throw new Error("Buyer demand is invalid for this deal.");
     const expectedLandedCost = body.quantity * body.buyRate + body.freightCost + body.loadingCost + body.otherCost;
     const expectedRevenue = body.sellRate ? body.quantity * body.sellRate : null;
     const expectedProfit = expectedRevenue === null ? null : expectedRevenue - expectedLandedCost;
@@ -41,7 +53,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const id = String(body.id || "");
     if (!id) return NextResponse.json({ error: "Deal id is required" }, { status: 400 });
-    const existing = await prisma.deal.findUnique({ where: { id } });
+    const existing = await prisma.deal.findUnique({ where: { id }, include: { company: true } });
     if (!existing) return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     const quantity = body.quantity !== undefined ? Number(body.quantity) : Number(existing.quantity);
     const buyRate = body.buyRate !== undefined ? Number(body.buyRate) : Number(existing.buyRate);
@@ -59,7 +71,9 @@ export async function PATCH(req: NextRequest) {
     data.quantity=quantity; data.buyRate=buyRate; data.sellRate=sellRate;
     data.freightCost=freightCost; data.loadingCost=loadingCost; data.otherCost=otherCost;
     data.expectedLandedCost=expectedLandedCost; data.expectedProfit=expectedProfit; data.expectedMargin=expectedMargin;
-    data.capitalExposure=body.sellerCommitted !== undefined ? Boolean(body.sellerCommitted) && !Boolean(body.buyerCommitted ?? existing.buyerCommitted) : existing.capitalExposure;
+    const sellerCommitted = body.sellerCommitted !== undefined ? Boolean(body.sellerCommitted) : existing.sellerCommitted;
+    const buyerCommitted = body.buyerCommitted !== undefined ? Boolean(body.buyerCommitted) : existing.buyerCommitted;
+    data.capitalExposure = sellerCommitted && !buyerCommitted;
     const deal=await prisma.deal.update({where:{id},data,include:{seller:true,buyer:true,material:true}});
     return NextResponse.json(deal);
   } catch (e) {
