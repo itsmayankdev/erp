@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
               : "Partially Matched",
           sellerCommitted: false,
           buyerCommitted: true,
-          capitalExposure: true,
+          capitalExposure: false,
           dealSources: {
             create: sources.map(source => ({
               companyId: company.id,
