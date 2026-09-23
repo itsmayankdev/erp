@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     if (body.opportunityId && (!refs[3] || refs[3].materialId !== body.materialId || refs[3].sellerId !== body.sellerId)) throw new Error("Opportunity is invalid for this deal.");
     if (body.demandId && (!refs[4] || refs[4].materialId !== body.materialId || (body.buyerId && refs[4].buyerId !== body.buyerId))) throw new Error("Buyer demand is invalid for this deal.");
     const expectedLandedCost = body.quantity * body.buyRate + body.freightCost + body.loadingCost + body.otherCost;
-    const expectedRevenue = body.sellRate ? body.quantity * body.sellRate : null;
+    const expectedRevenue = body.sellRate != null ? body.quantity * body.sellRate : null;
     const expectedProfit = expectedRevenue === null ? null : expectedRevenue - expectedLandedCost;
     const expectedMargin = expectedRevenue && expectedRevenue > 0 ? (expectedProfit! / expectedRevenue) * 100 : null;
     const deal = await prisma.deal.create({
