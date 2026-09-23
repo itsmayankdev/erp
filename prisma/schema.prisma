@@ -223,6 +223,7 @@ model Stock {
   companyId     String
   materialId    String
   dealId        String?
+  purchaseId    String?   @unique
   warehouseId   String?
   quantity      Decimal    @db.Decimal(18,3)
   reservedQty   Decimal    @default(0) @db.Decimal(18,3)
@@ -232,6 +233,7 @@ model Stock {
   company       Company    @relation(fields: [companyId], references: [id])
   material      Material   @relation(fields: [materialId], references: [id])
   deal          Deal?      @relation(fields: [dealId], references: [id])
+  purchase      Purchase? @relation(fields: [purchaseId], references: [id])
   stockAllocations StockAllocation[]
   createdAt     DateTime   @default(now())
 }
