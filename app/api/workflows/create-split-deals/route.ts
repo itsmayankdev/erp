@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
         requested,
         remainingDemand: Math.max(0, remainingDemand - requested),
       };
-    });
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
