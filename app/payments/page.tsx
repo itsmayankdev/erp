@@ -13,9 +13,24 @@ export default async function PaymentsPage(){
     prisma.salesOrder.findMany({where:{companyId:company.id},include:{buyer:true},orderBy:{createdAt:"desc"},take:100})
   ]);
 
+  const paymentsByPurchase=new Map<string,number>();
+  const paymentsBySales=new Map<string,number>();
+  rows.forEach((r:any)=>{
+    if(r.status==="Cancelled") return;
+    if(r.purchaseId) paymentsByPurchase.set(r.purchaseId,(paymentsByPurchase.get(r.purchaseId)||0)+Number(r.amount||0));
+    if(r.salesOrderId) paymentsBySales.set(r.salesOrderId,(paymentsBySales.get(r.salesOrderId)||0)+Number(r.amount||0));
+  });
   const documents=[
-    ...purchases.map(p=>({id:p.id,kind:"purchase",reference:p.reference,party:p.seller.name,total:Number(p.quantity)*Number(p.rate)+Number(p.freightCost)+Number(p.loadingCost)+Number(p.otherCost)})),
-    ...salesOrders.map(s=>({id:s.id,kind:"salesOrder",reference:s.reference,party:s.buyer.name,total:Number(s.quantity)*Number(s.rate),buyerId:s.buyerId}))
+    ...purchases.map(p=>{
+      const total=Number(p.quantity)*Number(p.rate)+Number(p.freightCost)+Number(p.loadingCost)+Number(p.otherCost);
+      const paid=paymentsByPurchase.get(p.id)||0;
+      return {id:p.id,kind:"purchase",reference:p.reference,party:p.seller.name,total,paid,outstanding:Math.max(0,total-paid)};
+    }),
+    ...salesOrders.map(s=>{
+      const total=Number(s.quantity)*Number(s.rate);
+      const paid=paymentsBySales.get(s.id)||0;
+      return {id:s.id,kind:"salesOrder",reference:s.reference,party:s.buyer.name,total,paid,outstanding:Math.max(0,total-paid),buyerId:s.buyerId};
+    })
   ];
 
   const safe=(x:any)=>JSON.parse(JSON.stringify(x));
