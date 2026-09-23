@@ -59,11 +59,16 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
     const purchaseId=deal.purchases[0]?.id;
     const salesOrderId=deal.salesOrders[0]?.id;
     setPaymentForm(v=>({...v,open:false}));
-    await post("/api/records?module=payments",{
+    await post("/api/payments",{
+      companyId:deal.companyId,
       buyerId:deal.buyerId||null,
       purchaseId: type==="Payable" ? purchaseId : null,
       salesOrderId: type==="Receivable" ? salesOrderId : null,
-      reference,type,amount:numeric,status:"Recorded",paidAt:new Date().toISOString()
+      reference,
+      type:type==="Payable"?"Paid":"Received",
+      amount:numeric,
+      status:"Paid",
+      paidAt:new Date().toISOString()
     });
   }
 
