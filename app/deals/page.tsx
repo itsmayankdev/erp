@@ -31,9 +31,9 @@ export default async function DealsPage(){
   </section>
   <section className="modulePanel">
    <div className="panelHead"><div><h3>Deal register</h3><p>Open a deal to enter its complete workspace.</p></div></div>
-   <div className="tableWrap"><table><thead><tr><th>Deal</th><th>Material</th><th>Seller</th><th>Buyer</th><th>Qty</th><th>Buy</th><th>Sell</th><th>Expected Profit</th><th>Status</th></tr></thead><tbody>
-    {deals.map(d=><tr key={d.id}><td><Link className="dealLink" href={"/deals/"+d.id}><b>{dealName(d)}</b><small>{d.procurementType}</small></Link></td><td><b>{d.material.name}</b><small>{d.material.grade||d.material.specification||""}</small></td><td>{d.seller.name}</td><td>{d.buyer?.name||"Unmatched"}</td><td>{safe(d.quantity).toLocaleString("en-IN")} {d.material.unit}</td><td>₹{safe(d.buyRate).toLocaleString("en-IN")}</td><td>{d.sellRate?"₹"+safe(d.sellRate).toLocaleString("en-IN"):"—"}</td><td>₹{safe(d.expectedProfit).toLocaleString("en-IN",{maximumFractionDigits:0})}</td><td><span className="status">{d.status}</span></td></tr>)}
-    {!deals.length&&<tr><td colSpan={9} className="emptyRegister">No deals yet. Use Smart Material Finder to convert a matched supply + buyer requirement into a deal.</td></tr>}
+   <div className="tableWrap"><table><thead><tr><th>Date</th><th>Deal</th><th>Material</th><th>Seller</th><th>Buyer</th><th>Qty</th><th>Buy</th><th>Sell</th><th>Expected Profit</th><th>Status</th></tr></thead><tbody>
+    {deals.map(d=><tr key={d.id}><td>{new Date(d.createdAt).toLocaleDateString("en-IN",{day:"2-digit",month:"2-digit",year:"numeric"})}</td><td><Link className="dealLink" href={"/deals/"+d.id}><b>{dealName(d)}</b><small>{d.procurementType}</small></Link></td><td><b>{d.material.name}</b><small>{d.material.grade||d.material.specification||""}</small></td><td>{d.seller.name}</td><td>{d.buyer?.name||"Unmatched"}</td><td>{safe(d.quantity).toLocaleString("en-IN")} {d.material.unit}</td><td>₹{safe(d.buyRate).toLocaleString("en-IN")}</td><td>{d.sellRate?"₹"+safe(d.sellRate).toLocaleString("en-IN"):"—"}</td><td>₹{safe(d.expectedProfit).toLocaleString("en-IN",{maximumFractionDigits:0})}</td><td><span className="status">{d.status}</span></td></tr>)}
+    {!deals.length&&<tr><td colSpan={10} className="emptyRegister">No deals yet. Use Smart Material Finder to convert a matched supply + buyer requirement into a deal.</td></tr>}
    </tbody></table></div>
   </section>
  </main>;
