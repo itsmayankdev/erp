@@ -43,11 +43,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 
   const where = { companyId: company.id, ...rangeWhere(filters.from, filters.to) };
 
-  const [deals, purchases, salesOrders, stocks, payments, buyers, sellers, demands] = await Promise.all([
+  const [deals, allDealsForNumbers, purchases, salesOrders, stocks, payments, buyers, sellers, demands] = await Promise.all([
     prisma.deal.findMany({
       where,
       include: { material: true, seller: true, buyer: true },
       orderBy: { createdAt: "desc" }
+    }),
+    prisma.deal.findMany({
+      where: { companyId: company.id },
+      select: { id:true, sellerId:true, buyerId:true, createdAt:true, seller:{select:{name:true}}, buyer:{select:{name:true}} },
+      orderBy: { createdAt: "asc" }
     }),
     prisma.purchase.findMany({
       where,
@@ -79,7 +84,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
   ]);
 
   const allDealIds = deals.map(d => d.id);
-  const dealNumbers = dealNumberMap(deals.map(d => ({
+  const dealNumbers = dealNumberMap(allDealsForNumbers.map(d => ({
     id:d.id, sellerId:d.sellerId, buyerId:d.buyerId,
     seller:{name:d.seller.name}, buyer:d.buyer ? {name:d.buyer.name} : null
   })));
