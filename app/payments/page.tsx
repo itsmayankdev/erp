@@ -9,8 +9,8 @@ export default async function PaymentsPage(){
 
   const [rows,purchases,salesOrders]=await Promise.all([
     prisma.payment.findMany({where:{companyId:company.id},include:{buyer:true,purchase:{include:{seller:true}},salesOrder:{include:{buyer:true}}},orderBy:{createdAt:"desc"}}),
-    prisma.purchase.findMany({where:{companyId:company.id},include:{seller:true},orderBy:{createdAt:"desc"},take:100}),
-    prisma.salesOrder.findMany({where:{companyId:company.id},include:{buyer:true},orderBy:{createdAt:"desc"},take:100})
+    prisma.purchase.findMany({where:{companyId:company.id},include:{seller:true},orderBy:{createdAt:"desc"}}),
+    prisma.salesOrder.findMany({where:{companyId:company.id},include:{buyer:true},orderBy:{createdAt:"desc"}})
   ]);
 
   const paymentsByPurchase=new Map<string,number>();
