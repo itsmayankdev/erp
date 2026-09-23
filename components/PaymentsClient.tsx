@@ -18,6 +18,8 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    return true;
  }),[rows]);
 
+ const totalReceivable=documents.filter((d:any)=>d.kind==="salesOrder").reduce((a:number,d:any)=>a+d.outstanding,0);
+ const totalPayable=documents.filter((d:any)=>d.kind==="purchase").reduce((a:number,d:any)=>a+d.outstanding,0);
  const received=rows.filter((r:any)=>["Received","RECEIPT"].includes(r.type)).reduce((a:number,r:any)=>a+Number(r.amount||0),0);
  const paid=rows.filter((r:any)=>["Paid","PAYMENT"].includes(r.type)).reduce((a:number,r:any)=>a+Number(r.amount||0),0);
 
@@ -42,7 +44,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    <div><b>PAYMENT RECORDS</b><strong>{rows.length}</strong><span>Recorded transactions</span></div>
    <div><b>RECEIVED</b><strong>{money(received)}</strong><span>Customer receipts</span></div>
    <div><b>PAID</b><strong>{money(paid)}</strong><span>Supplier payments</span></div>
-   <div><b>NET CASH MOVEMENT</b><strong>{money(received-paid)}</strong><span>Receipts less payments</span></div>
+   <div><b>RECEIVABLE OUTSTANDING</b><strong>{money(totalReceivable)}</strong><span>Customer balances to collect</span></div><div><b>PAYABLE OUTSTANDING</b><strong>{money(totalPayable)}</strong><span>Supplier balances to pay</span></div>
   </section>
   <section className="modulePanel">
    <div className="panelHead">
@@ -67,7 +69,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
     <div className="formGrid">
       <label>Payment type<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="Received">Received from customer</option><option value="Paid">Paid to supplier</option></select></label>
       <label>Linked document<select value={form.documentId} onChange={e=>setForm({...form,documentId:e.target.value})}><option value="">Select purchase / sales order</option>{documents.filter((d:any)=>form.type==="Received"?d.kind==="salesOrder":d.kind==="purchase").map((d:any)=><option key={d.kind+"-"+d.id} value={d.id}>{d.reference} · {d.party} · {money(d.total)}</option>)}</select></label>
-      <label>Amount<input type="number" min="0" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder="0"/></label>
+      <label>Amount<input type="number" min="0" max={form.documentId ? (documents.find((d:any)=>d.id===form.documentId)?.outstanding||undefined) : undefined} value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})} placeholder={form.documentId ? `Outstanding ${money(documents.find((d:any)=>d.id===form.documentId)?.outstanding||0)}` : "0"}/></label>
       <label>Reference<input value={form.reference} onChange={e=>setForm({...form,reference:e.target.value})} placeholder="Optional"/></label>
       <label>Due date<input type="date" value={form.dueDate} onChange={e=>setForm({...form,dueDate:e.target.value})}/></label>
       <label>Notes<input value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Optional note"/></label>
