@@ -17,7 +17,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    return {...d,paid,outstanding:Math.max(0,d.total-paid)};
  }),[documents,rows]);
 
- const filtered=useMemo(()=>rows.filter((r:any)=>{
+ const latestPaymentIds=useMemo(()=>{   const latest=new Map<string,string>();   [...rows]     .filter((r:any)=>r.status!=="Cancelled"&&(r.purchaseId||r.salesOrderId))     .sort((a:any,b:any)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())     .forEach((r:any)=>{       const key=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;       if(!latest.has(key)) latest.set(key,r.id);     });   return latest; },[rows]); const filtered=useMemo(()=>rows.filter((r:any)=>{
    if(filter==="received") return ["Received","RECEIPT"].includes(r.type);
    if(filter==="paid") return ["Paid","PAYMENT"].includes(r.type);
    return true;
@@ -75,7 +75,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
     const counterparty=r.buyer?.name||r.purchase?.seller?.name||r.salesOrder?.buyer?.name||"—";
     const linked=r.purchase?.reference||r.salesOrder?.reference||"Unlinked";
     const doc=documentBalances.find((d:any)=>(r.purchaseId&&d.kind==="purchase"&&d.id===r.purchaseId)||(r.salesOrderId&&d.kind==="salesOrder"&&d.id===r.salesOrderId));
-    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>Pay remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
+    const paymentKey=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;    const isLatestPayment=latestPaymentIds.get(paymentKey)===r.id;    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0&&isLatestPayment?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>Pay remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
    })}{!filtered.length&&<tr><td colSpan={9} className="emptyState">No payment records match this filter.</td></tr>}</tbody></table></div>
   </section>
 
