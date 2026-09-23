@@ -32,8 +32,8 @@
 
 /* Finance payment ledger */
 .paymentActions{display:flex;align-items:center;gap:8px}.paymentActions select{height:34px;border:1px solid #dce2e9;border-radius:6px;background:#fff;padding:0 9px;color:#405166;font:600 10px "DM Sans"}
-.paymentKpis{grid-template-columns:repeat(4,minmax(0,1fr))}.paymentKpis>div{min-width:0}.paymentKpis strong{font-size:21px}
-@media(max-width:900px){.paymentKpis{grid-template-columns:repeat(2,minmax(0,1fr))}.paymentActions{flex-wrap:wrap;justify-content:flex-end}}
+.paymentKpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.paymentKpis>div{min-width:0}.paymentKpis strong{font-size:21px;white-space:nowrap}
+@media(max-width:1100px){.paymentKpis{grid-template-columns:repeat(5,minmax(150px,1fr));overflow-x:auto;padding-bottom:4px}.paymentKpis>div{min-width:150px}.paymentActions{flex-wrap:wrap;justify-content:flex-end}}
 @media(max-width:600px){.paymentKpis{grid-template-columns:1fr}.paymentActions{width:100%;justify-content:flex-start}.paymentActions select{flex:1}}
 
 /* Central inventory control */
