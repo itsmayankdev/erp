@@ -36,27 +36,54 @@ export default async function Home() {
     opportunities,
     buyerDemands,
     inventory,
-    receivables,
-    payables,
+    purchases,
+    salesOrders,
+    purchasePayments,
+    salesPayments,
     todayPurchases,
     todaySalesAgg,
     priorityDeals
   ] = await Promise.all([
-    prisma.deal.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.opportunity.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.buyerDemand.count({ where: { companyId: company.id, status: { not: "Closed" } } }),
-    prisma.stock.findMany({ where: { companyId: company.id }, select: { quantity: true, unitCost: true } }),
-    prisma.payment.aggregate({ where: { companyId: company.id, type: "Receivable", status: { not: "Paid" } }, _sum: { amount: true } }),
-    prisma.payment.aggregate({ where: { companyId: company.id, type: "Payable", status: { not: "Paid" } }, _sum: { amount: true } }),
-    prisma.purchase.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, select: { quantity: true, rate: true, freightCost: true, loadingCost: true, otherCost: true } }),
-    prisma.salesOrder.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay } }, select: { quantity: true, rate: true } }),
-    prisma.deal.findMany({ where: { companyId: company.id, status: { not: "Closed" } }, include: { seller: true, buyer: true, material: true }, orderBy: { updatedAt: "desc" }, take: 8 })
+    prisma.deal.count({ where: { companyId: company.id, status: { notIn: ["Closed", "Completed", "Cancelled"] } } }),
+    prisma.opportunity.count({ where: { companyId: company.id, status: { notIn: ["Closed", "Cancelled", "Converted"] } } }),
+    prisma.buyerDemand.count({ where: { companyId: company.id, status: { notIn: ["Closed", "Cancelled", "Fulfilled"] } } }),
+    prisma.stock.findMany({ where: { companyId: company.id, status: { not: "Sold" } }, select: { quantity: true, unitCost: true } }),
+    prisma.purchase.findMany({ where: { companyId: company.id, status: { not: "Cancelled" } }, select: { quantity: true, rate: true, freightCost: true, loadingCost: true, otherCost: true } }),
+    prisma.salesOrder.findMany({ where: { companyId: company.id, status: { not: "Cancelled" } }, select: { quantity: true, rate: true } }),
+    prisma.payment.aggregate({ where: { companyId: company.id, purchaseId: { not: null }, type: { in: ["Paid", "PAYMENT"] }, status: { not: "Cancelled" } }, _sum: { amount: true } }),
+    prisma.payment.aggregate({ where: { companyId: company.id, salesOrderId: { not: null }, type: { in: ["Received", "RECEIPT"] }, status: { not: "Cancelled" } }, _sum: { amount: true } }),
+    prisma.purchase.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay }, status: { not: "Cancelled" } }, select: { quantity: true, rate: true, freightCost: true, loadingCost: true, otherCost: true } }),
+    prisma.salesOrder.findMany({ where: { companyId: company.id, createdAt: { gte: startOfDay }, status: { not: "Cancelled" } }, select: { quantity: true, rate: true } }),
+    prisma.deal.findMany({ where: { companyId: company.id, status: { notIn: ["Closed", "Completed", "Cancelled"] } }, include: { seller: true, buyer: true, material: true }, orderBy: { updatedAt: "desc" }, take: 8 })
   ]);
 
   const inventoryValue = inventory.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unitCost ?? 0), 0);
+  const purchaseValue = purchases.reduce((sum, p) => sum + Number(p.quantity) * Number(p.rate) + Number(p.freightCost || 0) + Number(p.loadingCost || 0) + Number(p.otherCost || 0), 0);
+  const salesValue = salesOrders.reduce((sum, item) => sum + Number(item.quantity) * Number(item.rate), 0);
+  const receivablesValue = Math.max(0, salesValue - Number(salesPayments._sum.amount ?? 0));
+  const payablesValue = Math.max(0, purchaseValue - Number(purchasePayments._sum.amount ?? 0));
   const todayPurchase = todayPurchases.reduce((sum, p) => sum + Number(p.quantity)*Number(p.rate) + Number(p.freightCost||0) + Number(p.loadingCost||0) + Number(p.otherCost||0), 0);
   const todaySales = todaySalesAgg.reduce((sum, s) => sum + Number(s.quantity)*Number(s.rate), 0);
   const todayProfit = todaySales - todayPurchase;
+
+  const shortName = (name: string) => {
+    const token = (name || "UNMATCHED").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    return token.slice(0, 3) || "UNM";
+  };
+  const pairKey = (d: any) => [d.sellerId, d.buyerId || "UNMATCHED"].join("|");
+  const pairCounts = new Map<string, number>();
+  const dealSequences = new Map<string, number>();
+  [...priorityDeals].reverse().forEach((d: any) => {
+    const key = pairKey(d);
+    const count = (pairCounts.get(key) || 0) + 1;
+    pairCounts.set(key, count);
+    dealSequences.set(d.id, count);
+  });
+  const dealName = (d: any) => {
+    const buyer = shortName(d.buyer?.name || "UNMATCHED");
+    const seller = shortName(d.seller?.name || "UNKNOWN");
+    return `DL-${buyer}_${seller}_${dealSequences.get(d.id) || 1}`;
+  };
 
   return (
     <main className="erpPage">
@@ -89,8 +116,8 @@ export default async function Home() {
             ["Opportunities", opportunities, "sourcing leads"],
             ["Buyer Demands", buyerDemands, "requirements"],
             ["Inventory Value", money(inventoryValue), "current value"],
-            ["Receivables", money(Number(receivables._sum.amount ?? 0)), "outstanding"],
-            ["Payables", money(Number(payables._sum.amount ?? 0)), "to suppliers"]
+            ["Receivables", money(receivablesValue), "outstanding"],
+            ["Payables", money(payablesValue), "to suppliers"]
           ].map(([a, b, c]) => (
             <div className="metric" key={String(a)}>
               <span>{a}</span><strong>{b}</strong><small>{c}</small>
@@ -118,7 +145,7 @@ export default async function Home() {
             <div className="actions">
               <div><span className="badge amber">{openDeals}</span><p><b>Deals in progress</b><small>Review current commitments</small></p><ChevronRight size={17} /></div>
               <div><span className="badge blue">{buyerDemands}</span><p><b>Buyer demands</b><small>Requirements currently tracked</small></p><ChevronRight size={17} /></div>
-              <div><span className="badge red">{Number(receivables._sum.amount ?? 0) > 0 ? "!" : "0"}</span><p><b>Receivables</b><small>Outstanding buyer payments</small></p><ChevronRight size={17} /></div>
+              <div><span className="badge red">{receivablesValue > 0 ? "!" : "0"}</span><p><b>Receivables</b><small>Outstanding buyer payments</small></p><ChevronRight size={17} /></div>
             </div>
           </section>
         </div>
@@ -134,7 +161,7 @@ export default async function Home() {
               <tbody>
                 {priorityDeals.map(d => (
                   <tr key={d.id}>
-                    <td><b>{d.id.slice(0, 10)}</b><small>{d.procurementType}</small></td>
+                    <td><b>{dealName(d)}</b><small>{d.procurementType}</small></td>
                     <td><b>{d.material.name}</b><small>{d.material.grade ?? "—"} · {Number(d.quantity).toLocaleString("en-IN")} {d.material.unit}</small></td>
                     <td><b>{d.seller.name}</b><small>→ {d.buyer?.name ?? "Buyer not matched"}</small></td>
                     <td>{money(Number(d.buyRate))}/kg</td>
