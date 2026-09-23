@@ -89,7 +89,7 @@ export default function AgreementsClient({companyId,companyName,agreements:initi
             <td>{a.validUntil?new Date(a.validUntil).toLocaleDateString("en-IN"):"Open"}</td>
             <td><select className="agreementStatusSelect" value={a.status} onChange={e=>updateStatus(a,e.target.value)}><option>Draft</option><option>Sent</option><option>Confirmed</option><option>Signed</option><option>Expired</option><option>Cancelled</option></select></td>
           </tr>
-        )}{!filtered.length&&<tr><td colSpan={8} className="emptyState">No agreements match the selected filters.</td></tr>}</tbody>
+        })}{!filtered.length&&<tr><td colSpan={8} className="emptyState">No agreements match the selected filters.</td></tr>}</tbody>
       </table></div>
     </section>
 
