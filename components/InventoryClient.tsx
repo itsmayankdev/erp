@@ -143,7 +143,7 @@ export default function InventoryClient({ stocks, companyName }: any) {
             <thead>
               <tr>
                 <th>Material</th>
-                <th>Source / Purchase</th>
+                <th>Stock Holder</th>
                 <th>Warehouse</th>
                 <th>Total Qty</th>
                 <th>Reserved</th>
@@ -158,13 +158,17 @@ export default function InventoryClient({ stocks, companyName }: any) {
                 const q = Number(s.quantity);
                 const r = Number(s.reservedQty || 0);
                 const available = Math.max(0, q - r);
+                const purchaseType = String(s.purchase?.purchaseType || "").toLowerCase();
+                const isDirectPurchase = purchaseType.includes("direct") || purchaseType.includes("own");
+                const stockHolder = isDirectPurchase
+                  ? (companyName || "Our Company")
+                  : (s.purchase?.seller?.name || s.deal?.seller?.name || companyName || "Our Company");
                 const statusClass = String(s.status || "").toLowerCase().replace(/\s+/g, "-");
 
                 return (
                   <tr key={s.id}>
                     <td><b>{s.material?.name || "—"}</b><small>{s.material?.code || ""} · {s.material?.unit || "KG"}</small></td>
-                    <td><b>{companyName || "Our Company"}</b><small>Current stock owner</small></td>
-                    <td><b>{s.purchase?.reference || "Direct / Own Procurement"}</b><small>{s.purchase?.seller?.name || s.deal?.seller?.name || "Purchased directly by us"}</small></td>
+                    <td><b>{stockHolder}</b><small>{isDirectPurchase ? "Direct purchase" : "Supplier-held stock"}</small></td>
                     <td>{s.warehouse?.name || "Unassigned"}<small>{s.warehouse?.city || ""}</small></td>
                     <td>{qty(q)} {s.material?.unit || "KG"}</td>
                     <td>{qty(r)}</td>
@@ -177,7 +181,7 @@ export default function InventoryClient({ stocks, companyName }: any) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="emptyState">No inventory lots match the selected filters.</td>
+                  <td colSpan={9} className="emptyState">No inventory lots match the selected filters.</td>
                 </tr>
               )}
             </tbody>
