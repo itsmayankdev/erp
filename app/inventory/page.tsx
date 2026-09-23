@@ -33,6 +33,6 @@ export default async function InventoryPage(){
         <p className="muted">{company.name} · Central stock position, reservations, valuation and exact stock usage.</p>
       </div>
     </header>
-    <InventoryClient stocks={JSON.parse(JSON.stringify(stocks))}/>
+    <InventoryClient stocks={JSON.parse(JSON.stringify(stocks))} companyName={company.name}/>
   </main>;
 }
