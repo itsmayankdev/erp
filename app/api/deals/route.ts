@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = dealSchema.parse(await req.json());
-    const refs = await prisma.$transaction([
+    const refs = await Promise.all([
       prisma.seller.findFirst({ where: { id: body.sellerId, companyId: body.companyId } }),
       body.buyerId ? prisma.buyer.findFirst({ where: { id: body.buyerId, companyId: body.companyId } }) : Promise.resolve(null),
       prisma.material.findFirst({ where: { id: body.materialId, companyId: body.companyId } }),
