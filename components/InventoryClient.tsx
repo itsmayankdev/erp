@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 const money = (v: any) => "₹" + Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 const qty = (v: any) => Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 3 });
 
-export default function InventoryClient({ stocks }: any) {
+export default function InventoryClient({ stocks, companyName }: any) {
   const [status, setStatus] = useState("All");
   const [material, setMaterial] = useState("All");
   const [warehouse, setWarehouse] = useState("All");
@@ -163,7 +163,8 @@ export default function InventoryClient({ stocks }: any) {
                 return (
                   <tr key={s.id}>
                     <td><b>{s.material?.name || "—"}</b><small>{s.material?.code || ""} · {s.material?.unit || "KG"}</small></td>
-                    <td><b>{s.purchase?.reference || "Direct stock"}</b><small>{s.purchase?.seller?.name || s.deal?.seller?.name || "—"}</small></td>
+                    <td><b>{companyName || "Our Company"}</b><small>Current stock owner</small></td>
+                    <td><b>{s.purchase?.reference || "Direct / Own Procurement"}</b><small>{s.purchase?.seller?.name || s.deal?.seller?.name || "Purchased directly by us"}</small></td>
                     <td>{s.warehouse?.name || "Unassigned"}<small>{s.warehouse?.city || ""}</small></td>
                     <td>{qty(q)} {s.material?.unit || "KG"}</td>
                     <td>{qty(r)}</td>
@@ -176,7 +177,7 @@ export default function InventoryClient({ stocks }: any) {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="emptyState">No inventory lots match the selected filters.</td>
+                  <td colSpan={10} className="emptyState">No inventory lots match the selected filters.</td>
                 </tr>
               )}
             </tbody>
