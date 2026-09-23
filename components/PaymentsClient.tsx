@@ -10,6 +10,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
  const [saving,setSaving]=useState(false);
  const [message,setMessage]=useState("");
  const [filter,setFilter]=useState("all");
+ const [paymentView,setPaymentView]=useState<"pay"|"receive">("pay");
  const [form,setForm]=useState({type:"Received",documentId:"",reference:"",amount:"",dueDate:"",notes:""});
 
  const documentBalances=useMemo(()=>documents.map((d:any)=>{
@@ -63,31 +64,40 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    <div><b>RECEIVABLE OUTSTANDING</b><strong>{money(totalReceivable)}</strong><span>Customer balances to collect</span></div>
    <div><b>PAYABLE OUTSTANDING</b><strong>{money(totalPayable)}</strong><span>Supplier balances to pay</span></div>
   </section>
-  <div className="paymentSettlementGrid">
-   <section className="modulePanel paymentSettlementPanel">
+  <div className="paymentViewTabs" role="tablist" aria-label="Payment view">
+   <button className={paymentView==="pay"?"active":""} onClick={()=>setPaymentView("pay")} role="tab" aria-selected={paymentView==="pay"}>
+    <span className="paymentTabTitle">To Pay</span>
+    <span className="paymentTabSub">Supplier payments</span>
+    <strong>{money(totalPayable)}</strong>
+   </button>
+   <button className={paymentView==="receive"?"active":""} onClick={()=>setPaymentView("receive")} role="tab" aria-selected={paymentView==="receive"}>
+    <span className="paymentTabTitle">To Receive</span>
+    <span className="paymentTabSub">Customer receipts</span>
+    <strong>{money(totalReceivable)}</strong>
+   </button>
+  </div>
+
+  {paymentView==="pay" ? <section className="modulePanel paymentSettlementPanel paymentActivePanel">
     <div className="panelHead">
-     <div><h3>To Pay</h3><p>Supplier balances that your company needs to pay.</p></div>
-     <strong className="paymentSectionTotal">{money(totalPayable)}</strong>
+     <div><h3>Supplier payments</h3><p>Payments your company needs to make to suppliers.</p></div>
+     <strong className="paymentSectionTotal">{money(totalPayable)} outstanding</strong>
     </div>
     <div className="tableWrap"><table><thead><tr><th>Supplier</th><th>Purchase</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Action</th></tr></thead>
     <tbody>{payableDocs.map((d:any)=><tr key={"pay-"+d.id}>
       <td><b>{d.party}</b></td><td>{d.reference}</td><td>{money(d.total)}</td><td>{money(d.paid)}</td><td><b>{money(d.outstanding)}</b></td>
       <td><button className="secondaryBtn paymentSettleBtn" onClick={()=>{setForm({type:"Paid",documentId:d.id,reference:"",amount:String(d.outstanding),dueDate:"",notes:""});setMessage("");setOpen(true)}}>Pay {money(d.outstanding)}</button></td>
     </tr>)}{!payableDocs.length&&<tr><td colSpan={6} className="emptyState">No supplier payments are currently outstanding.</td></tr>}</tbody></table></div>
-   </section>
-
-   <section className="modulePanel paymentSettlementPanel">
+  </section> : <section className="modulePanel paymentSettlementPanel paymentActivePanel">
     <div className="panelHead">
-     <div><h3>To Receive</h3><p>Customer balances that your company needs to collect.</p></div>
-     <strong className="paymentSectionTotal">{money(totalReceivable)}</strong>
+     <div><h3>Customer receipts</h3><p>Payments your company needs to receive from customers.</p></div>
+     <strong className="paymentSectionTotal">{money(totalReceivable)} outstanding</strong>
     </div>
     <div className="tableWrap"><table><thead><tr><th>Customer</th><th>Sales Order</th><th>Total</th><th>Received</th><th>Outstanding</th><th>Action</th></tr></thead>
     <tbody>{receivableDocs.map((d:any)=><tr key={"receive-"+d.id}>
       <td><b>{d.party}</b></td><td>{d.reference}</td><td>{money(d.total)}</td><td>{money(d.paid)}</td><td><b>{money(d.outstanding)}</b></td>
       <td><button className="secondaryBtn paymentSettleBtn" onClick={()=>{setForm({type:"Received",documentId:d.id,reference:"",amount:String(d.outstanding),dueDate:"",notes:""});setMessage("");setOpen(true)}}>Receive {money(d.outstanding)}</button></td>
     </tr>)}{!receivableDocs.length&&<tr><td colSpan={6} className="emptyState">No customer receipts are currently outstanding.</td></tr>}</tbody></table></div>
-   </section>
-  </div>
+  </section>}
 
   <section className="modulePanel">
    <div className="panelHead">
