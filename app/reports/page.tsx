@@ -25,7 +25,7 @@ function dealNumberMap(deals: Array<{ id:string; sellerId:string; buyerId:string
     const s = (name || "UNM").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
     return s.slice(0, 3) || "UNM";
   };
-  for (const d of [...deals].reverse()) {
+  for (const d of deals) {
     const key = d.sellerId + "|" + (d.buyerId || "UNMATCHED");
     const n = (counts.get(key) || 0) + 1;
     counts.set(key, n);
