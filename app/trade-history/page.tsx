@@ -30,7 +30,7 @@ export default async function TradeHistoryPage(){
  });
 
  const n=(v:any)=>Number(v||0);
- const shortName=(name:string)=>{const token=(name||"UNMATCHED").trim().split(/\\s+/)[0].replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return token||"UNMATCHED"};
+ const shortName=(name:string)=>{const token=(name||"UNMATCHED").replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return token.slice(0,3)||"UNM"};
  const pairKey=(d:any)=>[d.sellerId,d.buyerId||"UNMATCHED"].join("|");
  const pairCounts=new Map<string,number>();
  const dealNumbers=new Map<string,string>();
@@ -57,7 +57,7 @@ export default async function TradeHistoryPage(){
      details:{sources:d.dealSources.map((s:any)=>({seller:s.seller?.name||"Internal",quantity:n(s.quantity),buyRate:n(s.buyRate),location:s.location||"—"})),purchases:d.purchases.map((p:any)=>({reference:p.reference,quantity:n(p.quantity),rate:n(p.rate),status:p.status,receivedAt:p.receivedAt,payments:(p.payments||[]).map((x:any)=>n(x.amount))})),sales:d.salesOrders.map((s:any)=>({reference:s.reference,quantity:n(s.quantity),rate:n(s.rate),status:s.status,dispatchDate:s.dispatchDate,payments:(s.payments||[]).map((x:any)=>n(x.amount))}))}
    });
    if(d.buyer) rows.push({
-     id:d.id,counterpartyId:d.buyer.id,counterpartyName:d.buyer.name,role:"buyer",material:d.material,
+     id:d.id,dealNumber:dealNumbers.get(d.id)||d.id,counterpartyId:d.buyer.id,counterpartyName:d.buyer.name,role:"buyer",material:d.material,
      quantity:n(d.quantity),buyRate:n(d.buyRate),sellRate:n(d.sellRate),purchaseValue,salesValue,profit,
      freight:n(d.freightCost)+n(d.loadingCost)+n(d.otherCost),paid:receivedSalesPayment,paidPurchasePayment,receivedSalesPayment,
      status:d.status,procurementType:d.procurementType,createdAt:d.createdAt,
