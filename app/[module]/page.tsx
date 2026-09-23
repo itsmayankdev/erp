@@ -75,7 +75,54 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     rows = await prisma.document.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" } });
     columns = ["Document", "Type", "Reference", "Status", "Created"];
   } else if (module === "reports") {
-    return <main className="modulePage"><header className="moduleHeader"><div><p className="eyebrow">ERP REPORTS</p><h1>Reports</h1><p className="muted">Operational reporting is connected to the same PostgreSQL records.</p></div><Link className="secondaryBtn" href="/">Dashboard</Link></header><section className="moduleCards"><div><b>Deals</b><strong>{await prisma.deal.count({where:{companyId:company.id}})}</strong><span>Total deal records</span></div><div><b>Inventory</b><strong>{await prisma.stock.count({where:{companyId:company.id}})}</strong><span>Stock records</span></div><div><b>Sales</b><strong>{await prisma.salesOrder.count({where:{companyId:company.id}})}</strong><span>Sales orders</span></div></section></main>;
+    const [deals,purchases,salesOrders,stocks,payments,buyers,sellers] = await Promise.all([
+      prisma.deal.findMany({where:{companyId:company.id},include:{material:true,seller:true,buyer:true},orderBy:{createdAt:"desc"}}),
+      prisma.purchase.findMany({where:{companyId:company.id},include:{seller:true,material:true},orderBy:{createdAt:"desc"}}),
+      prisma.salesOrder.findMany({where:{companyId:company.id},include:{buyer:true,material:true},orderBy:{createdAt:"desc"}}),
+      prisma.stock.findMany({where:{companyId:company.id},include:{material:true,warehouse:true}}),
+      prisma.payment.findMany({where:{companyId:company.id},orderBy:{createdAt:"desc"}}),
+      prisma.buyer.findMany({where:{companyId:company.id}}),
+      prisma.seller.findMany({where:{companyId:company.id}})
+    ]);
+    const num=(v:any)=>Number(v||0);
+    const purchaseValue=purchases.reduce((a,p)=>a+num(p.quantity)*num(p.rate),0);
+    const salesValue=salesOrders.reduce((a,s)=>a+num(s.quantity)*num(s.rate),0);
+    const dealProfit=deals.reduce((a,d)=>a+(d.actualProfit!=null?num(d.actualProfit):d.expectedProfit!=null?num(d.expectedProfit):0),0);
+    const stockValue=stocks.reduce((a,s)=>a+num(s.quantity)*num(s.unitCost),0);
+    const reservedQty=stocks.reduce((a,s)=>a+num(s.reservedQty),0);
+    const received=payments.filter(p=>p.type==="Received" || p.type==="RECEIPT").reduce((a,p)=>a+num(p.amount),0);
+    const paid=payments.filter(p=>p.type!=="Received" && p.type!=="RECEIPT").reduce((a,p)=>a+num(p.amount),0);
+    const outstandingReceivable=Math.max(0,salesValue-received);
+    const outstandingPayable=Math.max(0,purchaseValue-paid);
+    const fmt=(v:number)=>"₹"+v.toLocaleString("en-IN",{maximumFractionDigits:0});
+    const qtyFmt=(v:number)=>v.toLocaleString("en-IN",{maximumFractionDigits:3});
+    const topMaterials=new Map<string,{name:string,qty:number,buy:number,sell:number}>();
+    for(const d of deals){const k=d.material.name;const x=topMaterials.get(k)||{name:k,qty:0,buy:0,sell:0};x.qty+=num(d.quantity);x.buy+=num(d.quantity)*num(d.buyRate);x.sell+=num(d.quantity)*num(d.sellRate);topMaterials.set(k,x)}
+    const materialRows=Array.from(topMaterials.values()).sort((a,b)=>(b.sell-b.buy)-(a.sell-a.buy)).slice(0,8);
+    const topCompanies=new Map<string,{name:string,trades:number,value:number,profit:number}>();
+    for(const d of deals){const parties=[d.seller?.name,d.buyer?.name].filter(Boolean) as string[];for(const name of parties){const x=topCompanies.get(name)||{name,trades:0,value:0,profit:0};x.trades++;x.value+=num(d.quantity)*(num(d.buyRate)+num(d.sellRate));x.profit+=d.actualProfit!=null?num(d.actualProfit):num(d.expectedProfit);topCompanies.set(name,x)}}
+    const companyRows=Array.from(topCompanies.values()).sort((a,b)=>b.value-a.value).slice(0,8);
+    return <main className="modulePage reportsPage">
+      <header className="moduleHeader"><div><p className="eyebrow">ERP REPORTING</p><h1>Reports & Analytics</h1><p className="muted">{company.name} · Live commercial, inventory and cash position from PostgreSQL.</p></div><div className="moduleActions"><Link className="secondaryBtn" href="/">← Dashboard</Link></div></header>
+      <section className="moduleCards reportKpis">
+        <div><b>TRADING PROFIT</b><strong>{fmt(dealProfit)}</strong><span>Actual profit where recorded, otherwise expected profit</span></div>
+        <div><b>PURCHASE VALUE</b><strong>{fmt(purchaseValue)}</strong><span>{purchases.length} purchase records</span></div>
+        <div><b>SALES VALUE</b><strong>{fmt(salesValue)}</strong><span>{salesOrders.length} sales orders</span></div>
+        <div><b>STOCK VALUE</b><strong>{fmt(stockValue)}</strong><span>{stocks.length} stock lots · {qtyFmt(reservedQty)} reserved</span></div>
+        <div><b>RECEIVABLE</b><strong>{fmt(outstandingReceivable)}</strong><span>Sales value less recorded receipts</span></div>
+        <div><b>PAYABLE</b><strong>{fmt(outstandingPayable)}</strong><span>Purchase value less recorded payments</span></div>
+      </section>
+      <div className="reportGrid">
+        <section className="modulePanel"><div className="panelHead"><div><h3>Material profitability</h3><p>Trading value and spread by material.</p></div></div><div className="tableWrap"><table><thead><tr><th>Material</th><th>Qty</th><th>Buy value</th><th>Sell value</th><th>Spread</th></tr></thead><tbody>{materialRows.map(x=><tr key={x.name}><td><b>{x.name}</b></td><td>{qtyFmt(x.qty)}</td><td>{fmt(x.buy)}</td><td>{fmt(x.sell)}</td><td className="profitPositive">{fmt(x.sell-x.buy)}</td></tr>)}{!materialRows.length&&<tr><td colSpan={5}>No trading data yet.</td></tr>}</tbody></table></div></section>
+        <section className="modulePanel"><div className="panelHead"><div><h3>Company-wise business</h3><p>Counterparty activity across executed deals.</p></div></div><div className="tableWrap"><table><thead><tr><th>Company</th><th>Trades</th><th>Business value</th><th>Profit</th></tr></thead><tbody>{companyRows.map(x=><tr key={x.name}><td><b>{x.name}</b></td><td>{x.trades}</td><td>{fmt(x.value)}</td><td className={x.profit>=0?"profitPositive":"profitNegative"}>{fmt(x.profit)}</td></tr>)}{!companyRows.length&&<tr><td colSpan={4}>No trade data yet.</td></tr>}</tbody></table></div></section>
+      </div>
+      <div className="reportGrid">
+        <section className="modulePanel"><div className="panelHead"><div><h3>Operational position</h3><p>Current ERP activity at a glance.</p></div></div><div className="reportMetricList">
+          <div><span>Deals</span><b>{deals.length}</b></div><div><span>Buyers</span><b>{buyers.length}</b></div><div><span>Suppliers</span><b>{sellers.length}</b></div><div><span>Purchase records</span><b>{purchases.length}</b></div><div><span>Sales orders</span><b>{salesOrders.length}</b></div><div><span>Payment records</span><b>{payments.length}</b></div>
+        </div></section>
+        <section className="modulePanel"><div className="panelHead"><div><h3>Cash movement</h3><p>Recorded payment activity; outstanding is derived from transaction values.</p></div></div><div className="reportCash"><div><span>Received</span><strong>{fmt(received)}</strong></div><div><span>Paid</span><strong>{fmt(paid)}</strong></div><div><span>Net recorded cash</span><strong>{fmt(received-paid)}</strong></div></div></section>
+      </div>
+    </main>;
   } else {
     rows = await prisma.buyerDemand.findMany({ where: { companyId: company.id }, include: { buyer: true, material: true }, orderBy: { updatedAt: "desc" } });
     columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
