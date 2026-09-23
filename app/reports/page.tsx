@@ -89,7 +89,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     seller:{name:d.seller.name}, buyer:d.buyer ? {name:d.buyer.name} : null
   })));
 
-  const purchaseValue = purchases.reduce((a,p) => a + num(p.quantity) * num(p.rate), 0);
+  const purchaseValue = purchases.reduce((a,p) => a + num(p.quantity) * num(p.rate) + num(p.freightCost) + num(p.loadingCost) + num(p.otherCost), 0);
   const salesValue = salesOrders.reduce((a,s) => a + num(s.quantity) * num(s.rate), 0);
   const expectedProfit = deals.reduce((a,d) => a + num(d.expectedProfit), 0);
   const actualProfit = deals.reduce((a,d) => a + (d.actualProfit != null ? num(d.actualProfit) : 0), 0);
@@ -99,7 +99,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 
   const payableRows = purchases.map(p => {
     const total = num(p.quantity) * num(p.rate) + num(p.freightCost) + num(p.loadingCost) + num(p.otherCost);
-    const paid = p.payments.filter(x => x.type !== "Received" && x.type !== "RECEIPT").reduce((a,x) => a + num(x.amount), 0);
+    const paid = p.payments.filter(x => x.status !== "Cancelled" && (x.type === "Paid" || x.type === "PAYMENT")).reduce((a,x) => a + num(x.amount), 0);
     return { id:p.id, reference:p.reference, party:p.seller.name, total, paid, outstanding:Math.max(0,total-paid), status:p.status };
   }).filter(x => x.outstanding > 0);
 
@@ -111,8 +111,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 
   const payable = payableRows.reduce((a,x) => a + x.outstanding, 0);
   const receivable = receivableRows.reduce((a,x) => a + x.outstanding, 0);
-  const received = payments.filter(p => p.type === "Received" || p.type === "RECEIPT").reduce((a,p) => a + num(p.amount), 0);
-  const paid = payments.filter(p => p.type !== "Received" && p.type !== "RECEIPT").reduce((a,p) => a + num(p.amount), 0);
+  const received = payments.filter(p => p.status !== "Cancelled" && (p.type === "Received" || p.type === "RECEIPT")).reduce((a,p) => a + num(p.amount), 0);
+  const paid = payments.filter(p => p.status !== "Cancelled" && (p.type === "Paid" || p.type === "PAYMENT")).reduce((a,p) => a + num(p.amount), 0);
   const stockValue = stocks.reduce((a,s) => a + num(s.quantity) * num(s.unitCost), 0);
   const availableStockQty = stocks.reduce((a,s) => a + Math.max(0,num(s.quantity)-num(s.reservedQty)), 0);
   const reservedStockQty = stocks.reduce((a,s) => a + num(s.reservedQty), 0);
