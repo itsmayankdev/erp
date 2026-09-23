@@ -50,7 +50,15 @@ export async function POST(req:NextRequest) {
   if(!company) return NextResponse.json({error:"Company not initialized"},{status:400});
   const body=clean(await req.json());
   try {
+    const relationChecks:any[]=[];
+    if(body.sellerId) relationChecks.push(prisma.seller.findFirst({where:{id:String(body.sellerId),companyId:company.id}}));
+    if(body.buyerId) relationChecks.push(prisma.buyer.findFirst({where:{id:String(body.buyerId),companyId:company.id}}));
+    if(body.materialId) relationChecks.push(prisma.material.findFirst({where:{id:String(body.materialId),companyId:company.id}}));
+    if(body.warehouseId) relationChecks.push(prisma.warehouse.findFirst({where:{id:String(body.warehouseId),companyId:company.id}}));
+    const refs=await Promise.all(relationChecks);
+    if(refs.some(x=>!x)) return NextResponse.json({error:"One or more linked master records do not belong to this company."},{status:400});
     const record=await (prisma as any)[model].create({data:{...body,companyId:company.id}});
+    await prisma.auditLog.create({data:{companyId:company.id,action:"CREATE",entity:model,entityId:record.id,after:JSON.parse(JSON.stringify(record))}});
     return NextResponse.json(record,{status:201});
   } catch(e:any) {
     const message = e?.message || "Unable to create record";
@@ -69,8 +77,17 @@ export async function PATCH(req:NextRequest) {
   if(!company) return NextResponse.json({error:"Company not initialized"},{status:400});
   const data=clean(body); delete data.companyId;
   try {
-    const record=await (prisma as any)[model].updateMany({where:{id:body.id,companyId:company.id},data});
-    if(!record.count) return NextResponse.json({error:"Record not found"},{status:404});
+    const existing=await (prisma as any)[model].findFirst({where:{id:body.id,companyId:company.id}});
+    if(!existing) return NextResponse.json({error:"Record not found"},{status:404});
+    const relationChecks:any[]=[];
+    if(data.sellerId) relationChecks.push(prisma.seller.findFirst({where:{id:String(data.sellerId),companyId:company.id}}));
+    if(data.buyerId) relationChecks.push(prisma.buyer.findFirst({where:{id:String(data.buyerId),companyId:company.id}}));
+    if(data.materialId) relationChecks.push(prisma.material.findFirst({where:{id:String(data.materialId),companyId:company.id}}));
+    if(data.warehouseId) relationChecks.push(prisma.warehouse.findFirst({where:{id:String(data.warehouseId),companyId:company.id}}));
+    const refs=await Promise.all(relationChecks);
+    if(refs.some(x=>!x)) return NextResponse.json({error:"One or more linked master records do not belong to this company."},{status:400});
+    await (prisma as any)[model].updateMany({where:{id:body.id,companyId:company.id},data});
+    await prisma.auditLog.create({data:{companyId:company.id,action:"UPDATE",entity:model,entityId:body.id,before:JSON.parse(JSON.stringify(existing)),after:JSON.parse(JSON.stringify({...existing,...data}))}});
     return NextResponse.json({ok:true});
   } catch(e:any) { return NextResponse.json({error:e?.message||"Unable to update record"},{status:400}); }
 }
