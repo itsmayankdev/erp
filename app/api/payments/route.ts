@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       if(body.purchaseId){
         const purchase=await tx.purchase.findFirst({where:{id:body.purchaseId,companyId:body.companyId},include:{seller:true}});
         if(!purchase) throw new Error("Purchase not found for this company.");
+        if(!["Paid","PAYMENT"].includes(body.type)) throw new Error("A purchase payment must use Paid/PAYMENT direction.");
         const already=await tx.payment.aggregate({where:{companyId:body.companyId,purchaseId:body.purchaseId,status:{not:"Cancelled"}},_sum:{amount:true}});
         const total=Number(purchase.quantity)*Number(purchase.rate)+Number(purchase.freightCost)+Number(purchase.loadingCost)+Number(purchase.otherCost);
         const outstanding=Math.max(0,total-Number(already._sum.amount||0));
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest) {
       if(body.salesOrderId){
         const order=await tx.salesOrder.findFirst({where:{id:body.salesOrderId,companyId:body.companyId},include:{buyer:true}});
         if(!order) throw new Error("Sales order not found for this company.");
+        if(!["Received","RECEIPT"].includes(body.type)) throw new Error("A sales receipt must use Received/RECEIPT direction.");
+        if(body.buyerId && body.buyerId !== order.buyerId) throw new Error("Payment buyer does not match the sales order buyer.");
         const already=await tx.payment.aggregate({where:{companyId:body.companyId,salesOrderId:body.salesOrderId,status:{not:"Cancelled"}},_sum:{amount:true}});
         const total=Number(order.quantity)*Number(order.rate);
         const outstanding=Math.max(0,total-Number(already._sum.amount||0));
