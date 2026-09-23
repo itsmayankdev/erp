@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileCheck2, PackageCheck, Truck, CreditCard, Pencil, Plus, RefreshCw } from "lucide-react";
 
-export default function DealWorkspace({deal,payments,masters}:any){
+export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
   const router=useRouter();
   const [tab,setTab]=useState("overview");
   const [paymentForm,setPaymentForm]=useState<{open:boolean;amount:string;type:"Receivable"|"Payable"}>({open:false,amount:"",type:"Receivable"});
