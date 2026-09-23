@@ -8,6 +8,16 @@ export default async function DealsPage(){
  if(!company)return <main className="modulePage"><p>No company found.</p></main>;
  const deals=await prisma.deal.findMany({where:{companyId:company.id},include:{seller:true,buyer:true,material:true},orderBy:{updatedAt:"desc"}});
  const safe=(n:any)=>Number(n||0);
+ const shortName=(name:string)=>{const token=(name||"UNMATCHED").trim().split(/\\s+/)[0].replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return token||"UNMATCHED"};
+ const pairKey=(d:any)=>[d.sellerId,d.buyerId||"UNMATCHED"].join("|");
+ const pairCounts=new Map<string,number>();
+ [...deals].reverse().forEach((d:any)=>{const key=pairKey(d);pairCounts.set(key,(pairCounts.get(key)||0)+1);});
+ const dealName=(d:any)=>{
+   const buyer=shortName(d.buyer?.name||"UNMATCHED");
+   const seller=shortName(d.seller?.name||"UNKNOWN");
+   const count=pairCounts.get(pairKey(d))||1;
+   return `DL-${buyer}_${seller}_${count}`;
+ };
  return <main className="modulePage">
   <header className="moduleHeader">
    <div><p className="eyebrow">COMMERCIAL CONTROL</p><h1>Deals</h1><p className="muted">{company.name} · {deals.length} deal records · every deal connects seller, buyer, material, purchase, stock, sale and profitability.</p></div>
@@ -21,7 +31,7 @@ export default async function DealsPage(){
   <section className="modulePanel">
    <div className="panelHead"><div><h3>Deal register</h3><p>Open a deal to enter its complete workspace.</p></div></div>
    <div className="tableWrap"><table><thead><tr><th>Deal</th><th>Material</th><th>Seller</th><th>Buyer</th><th>Qty</th><th>Buy</th><th>Sell</th><th>Expected Profit</th><th>Status</th></tr></thead><tbody>
-    {deals.map(d=><tr key={d.id}><td><Link className="dealLink" href={"/deals/"+d.id}><b>{d.id.slice(0,10)}</b><small>{d.procurementType}</small></Link></td><td><b>{d.material.name}</b><small>{d.material.grade||d.material.specification||""}</small></td><td>{d.seller.name}</td><td>{d.buyer?.name||"Unmatched"}</td><td>{safe(d.quantity).toLocaleString("en-IN")} {d.material.unit}</td><td>₹{safe(d.buyRate).toLocaleString("en-IN")}</td><td>{d.sellRate?"₹"+safe(d.sellRate).toLocaleString("en-IN"):"—"}</td><td>₹{safe(d.expectedProfit).toLocaleString("en-IN",{maximumFractionDigits:0})}</td><td><span className="status">{d.status}</span></td></tr>)}
+    {deals.map(d=><tr key={d.id}><td><Link className="dealLink" href={"/deals/"+d.id}><b>{dealName(d)}</b><small>{d.procurementType}</small></Link></td><td><b>{d.material.name}</b><small>{d.material.grade||d.material.specification||""}</small></td><td>{d.seller.name}</td><td>{d.buyer?.name||"Unmatched"}</td><td>{safe(d.quantity).toLocaleString("en-IN")} {d.material.unit}</td><td>₹{safe(d.buyRate).toLocaleString("en-IN")}</td><td>{d.sellRate?"₹"+safe(d.sellRate).toLocaleString("en-IN"):"—"}</td><td>₹{safe(d.expectedProfit).toLocaleString("en-IN",{maximumFractionDigits:0})}</td><td><span className="status">{d.status}</span></td></tr>)}
     {!deals.length&&<tr><td colSpan={9} className="emptyRegister">No deals yet. Use Smart Material Finder to convert a matched supply + buyer requirement into a deal.</td></tr>}
    </tbody></table></div>
   </section>
