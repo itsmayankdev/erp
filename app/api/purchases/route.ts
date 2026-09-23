@@ -108,9 +108,10 @@ export async function POST(req: NextRequest) {
             companyId: body.companyId,
             materialId: body.materialId,
             dealId: body.dealId ?? null,
+            purchaseId: row.id,
             warehouseId: body.warehouseId ?? null,
             quantity: body.quantity,
-            unitCost: body.rate,
+            unitCost: (body.quantity * body.rate + body.freightCost + body.loadingCost + body.otherCost) / body.quantity,
             status: "Available"
           }
         });
