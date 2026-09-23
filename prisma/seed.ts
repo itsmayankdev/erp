@@ -52,6 +52,23 @@ async function main() {
     sellerMap[name] = row.id;
   }
 
+  // Remove legacy placeholder buyer records that were created by the early UI prototype.
+  // Only delete a placeholder when it has no live commercial relationships; never delete transactional history.
+  for (const legacyName of ["Company"]) {
+    const legacyRows = await prisma.buyer.findMany({ where: { companyId: company.id, name: legacyName } });
+    for (const legacy of legacyRows) {
+      const [demandsCount, dealsCount, salesCount, paymentsCount] = await Promise.all([
+        prisma.buyerDemand.count({ where: { companyId: company.id, buyerId: legacy.id } }),
+        prisma.deal.count({ where: { companyId: company.id, buyerId: legacy.id } }),
+        prisma.salesOrder.count({ where: { companyId: company.id, buyerId: legacy.id } }),
+        prisma.payment.count({ where: { companyId: company.id, buyerId: legacy.id } })
+      ]);
+      if (demandsCount === 0 && dealsCount === 0 && salesCount === 0 && paymentsCount === 0) {
+        await prisma.buyer.delete({ where: { id: legacy.id } });
+      }
+    }
+  }
+
   // Keep the buyer master aligned with the actual Buyers Data module.
   // These two are the initial seeded buyers used for testing.
   const buyerNames = ["XYZ Industries","LMN Industries"];
