@@ -6,141 +6,69 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-
   try {
     const result = await prisma.$transaction(async tx => {
       const order = await tx.salesOrder.findUnique({
         where: { id },
-        include: { stockAllocations: true, material: true },
+        include: { stockAllocations: true, material: true, deal: true },
       });
-
       if (!order) throw new Error("Sales order not found.");
       if (order.status === "Dispatched" || order.status === "Delivered") return order;
-      if (!order.stockAllocations.length) {
-        throw new Error("No company stock allocation is linked to this sales order.");
-      }
+      if (!order.stockAllocations.length) throw new Error("No company stock allocation is linked to this sales order.");
 
-      const totalAllocated = order.stockAllocations.reduce(
-        (sum, allocation) => sum + Number(allocation.quantity),
-        0
-      );
-
+      const totalAllocated = order.stockAllocations
+        .filter(a => a.status === "Reserved" || a.status === "Dispatched")
+        .reduce((sum, allocation) => sum + Number(allocation.quantity), 0);
       if (totalAllocated + 0.0001 < Number(order.quantity)) {
-        throw new Error(
-          `Only ${totalAllocated} ${order.material.unit} is allocated against an order for ${Number(order.quantity)}.`
-        );
+        throw new Error(`Only ${totalAllocated} ${order.material.unit} is allocated against an order for ${Number(order.quantity)}.`);
       }
 
       for (const allocation of order.stockAllocations) {
         if (allocation.status !== "Reserved") continue;
-
         const stock = await tx.stock.findUnique({ where: { id: allocation.stockId } });
         if (!stock) throw new Error("A linked stock lot no longer exists.");
-
-        const reserved = Number(stock.reservedQty);
-        const quantity = Number(stock.quantity);
-        const used = Number(allocation.quantity);
-
-        if (reserved + 0.0001 < used || quantity + 0.0001 < used) {
-          throw new Error("Stock changed after reservation. Dispatch was stopped to protect inventory.");
-        }
-
-        const remainingQty = quantity - used;
-        const remainingReserved = reserved - used;
-
+        const reserved = Number(stock.reservedQty), quantity = Number(stock.quantity), used = Number(allocation.quantity);
+        if (reserved + 0.0001 < used || quantity + 0.0001 < used) throw new Error("Stock changed after reservation. Dispatch was stopped to protect inventory.");
+        const remainingQty = quantity - used, remainingReserved = reserved - used;
         await tx.stock.update({
           where: { id: stock.id },
-          data: {
-            quantity: remainingQty,
-            reservedQty: remainingReserved,
-            status:
-              remainingQty <= 0.0001
-                ? "Sold"
-                : remainingReserved > 0
-                  ? "Reserved"
-                  : "Available",
-          },
+          data: { quantity: remainingQty, reservedQty: remainingReserved, status: remainingQty <= 0.0001 ? "Sold" : remainingReserved > 0 ? "Reserved" : "Available" }
         });
-
-        await tx.stockAllocation.update({
-          where: { id: allocation.id },
-          data: { status: "Dispatched", releasedAt: new Date() },
-        });
+        await tx.stockAllocation.update({where:{id:allocation.id},data:{status:"Dispatched",releasedAt:new Date()}});
       }
 
-      // Dispatch is the point at which the commercial sale becomes an actual realized trade.
-      // Recalculate actual landed cost and profit from the linked purchase/sales records.
       if (order.dealId) {
-        const dealLedger = await tx.deal.findUnique({
-          where: { id: order.dealId },
-          include: { purchases: true, salesOrders: true },
-        });
+        const dealLedger = await tx.deal.findUnique({where:{id:order.dealId},include:{purchases:{where:{status:"Received"}},salesOrders:{where:{status:{in:["Dispatched","Delivered"]}}}}});
         if (dealLedger) {
-          const purchaseValue = dealLedger.purchases.reduce(
-            (sum, p) => sum + Number(p.quantity) * Number(p.rate) +
-              Number(p.freightCost) + Number(p.loadingCost) + Number(p.otherCost), 0
-          );
-          const salesValue = dealLedger.salesOrders.reduce(
-            (sum, s) => sum + Number(s.quantity) * Number(s.rate), 0
-          );
-          const actualLandedCost = purchaseValue;
-          const actualProfit = salesValue - actualLandedCost;
-          const actualMargin = salesValue > 0 ? actualProfit / salesValue : 0;
-
-          await tx.deal.update({
-            where: { id: order.dealId },
-            data: { actualLandedCost, actualProfit, actualMargin },
-          });
+          const purchaseValue = dealLedger.purchases.reduce((sum,p)=>sum+Number(p.quantity)*Number(p.rate)+Number(p.freightCost)+Number(p.loadingCost)+Number(p.otherCost),0);
+          const salesValue = dealLedger.salesOrders.reduce((sum,s)=>sum+Number(s.quantity)*Number(s.rate),0);
+          const actualProfit = salesValue-purchaseValue;
+          const actualMargin = salesValue>0 ? (actualProfit/salesValue)*100 : null;
+          await tx.deal.update({where:{id:order.dealId},data:{actualLandedCost:purchaseValue,actualProfit,actualMargin,status:salesValue>0 && dealLedger.salesOrders.reduce((q,s)=>q+Number(s.quantity),0)+0.0001>=Number(dealLedger.quantity)?"Completed":"In Execution"}});
         }
-      }
 
-      const demandId = order.deal?.demandId ?? null;
-      if (demandId) {
-        const demand = await tx.buyerDemand.findUnique({ where: { id: demandId } });
-        if (demand) {
-          const nextFulfilled = Number(demand.fulfilledQuantity || 0) + Number(order.quantity);
-          const matched = Number(demand.matchedQuantity || 0);
-          const total = Number(demand.quantity);
-          await tx.buyerDemand.update({
-            where: { id: demand.id },
-            data: {
-              fulfilledQuantity: nextFulfilled,
-              status:
-                nextFulfilled >= total - 0.0001
-                  ? "Fulfilled"
-                  : nextFulfilled > 0
-                    ? "Partially Fulfilled"
-                    : matched >= total - 0.0001
-                      ? "Matched"
-                      : matched > 0
-                        ? "Partially Matched"
-                        : demand.status,
-            },
-          });
+        const demandId = order.deal?.demandId ?? null;
+        if (demandId) {
+          const demand = await tx.buyerDemand.findUnique({where:{id:demandId}});
+          if (demand) {
+            const nextFulfilled = Math.min(Number(demand.quantity), Number(demand.fulfilledQuantity||0)+Number(order.quantity));
+            const matched = Number(demand.matchedQuantity||0), total = Number(demand.quantity);
+            await tx.buyerDemand.update({where:{id:demand.id},data:{
+              fulfilledQuantity:nextFulfilled,
+              status:nextFulfilled>=total-0.0001?"Fulfilled":nextFulfilled>0?"Partially Fulfilled":matched>=total-0.0001?"Matched":matched>0?"Partially Matched":demand.status
+            }});
+          }
         }
       }
 
       return tx.salesOrder.update({
-        where: { id },
-        data: { status: "Dispatched", dispatchDate: new Date() },
-        include: {
-          buyer: true,
-          material: true,
-          stockAllocations: {
-            include: { stock: { include: { warehouse: true } } },
-          },
-        },
+        where:{id},
+        data:{status:"Dispatched",dispatchDate:new Date()},
+        include:{buyer:true,material:true,deal:true,stockAllocations:{include:{stock:{include:{warehouse:true}}}}}
       });
     });
-
     return NextResponse.json(result);
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error: "Dispatch failed",
-        detail: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 400 }
-    );
+  } catch(error) {
+    return NextResponse.json({error:"Dispatch failed",detail:error instanceof Error?error.message:"Unknown error"},{status:400});
   }
 }
