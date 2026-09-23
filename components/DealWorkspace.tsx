@@ -18,7 +18,7 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
   const expectedCost=Number(deal.expectedLandedCost||0);
   const expectedRevenue=qty*Number(deal.sellRate||0);
   const expectedProfit=Number(deal.expectedProfit||0);
-  const tabs=["overview","commercial","profitability","agreements","purchase","inventory","sales","payments","activity"];
+  const tabs=["overview","commercial","profitability","agreements","purchase","inventory","sales","documents","payments","activity"];
 
   async function post(url:string,body:any){
     setBusy(true);setMessage("");
@@ -254,6 +254,14 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
 
       {tab==="sales"&&<ActionSection title="Sales & dispatch" icon={<Truck size={16}/>} actions={<><button onClick={createSale} disabled={busy}><Plus size={14}/> Create Sales Order</button><button onClick={dispatchLatestSale} disabled={busy || !deal.salesOrders.length}><Truck size={14}/> Dispatch</button></>}><DataTable rows={deal.salesOrders} cols={["reference","quantity","rate","status","dispatchDate"]}/></ActionSection>}
 
+      {tab==="documents"&&<ActionSection title="Commercial documents" icon={<FileCheck2 size={16}/>}><div className="documentActionGrid">
+        <DocumentAction label="Quotation" sourceId={deal.id} type="QUOTATION"/>
+        {deal.purchases?.map((p:any)=><DocumentAction key={"po"+p.id} label={"Purchase Order · "+p.reference} sourceId={p.id} type="PURCHASE_ORDER"/>)}
+        {deal.salesOrders?.map((s:any)=><DocumentAction key={"so"+s.id} label={"Sales Order · "+s.reference} sourceId={s.id} type="SALES_ORDER"/>)}
+        {deal.salesOrders?.map((s:any)=><DocumentAction key={"inv"+s.id} label={"Invoice · "+s.reference} sourceId={s.id} type="INVOICE"/>)}
+        {!deal.purchases?.length&&!deal.salesOrders?.length&&<div className="managementNote">Quotation is available now. Create a purchase or sales order to generate the corresponding commercial document.</div>}
+      </div></ActionSection>}
+
       {tab==="payments"&&<ActionSection title="Payments" icon={<CreditCard size={16}/>} actions={<button onClick={openPaymentForm} disabled={busy}><Plus size={14}/> Record Payment</button>}><DataTable rows={payments} cols={["reference","type","amount","dueDate","status"]}/></ActionSection>}
 
       {tab==="activity"&&<ActionSection title="Deal activity"><div className="activityLine"><span>Deal created</span><small>{new Date(deal.createdAt).toLocaleString("en-IN")}</small></div><div className="activityLine"><span>Last updated</span><small>{new Date(deal.updatedAt).toLocaleString("en-IN")}</small></div></ActionSection>}
@@ -261,6 +269,7 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
   </div>;
 }
 
+function DocumentAction({label,sourceId,type}:{label:string;sourceId:string;type:string}){return <button className="documentAction" onClick={async()=>{try{const r=await fetch("/api/documents/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type,sourceId,format:"PDF"})});const d=await r.json();if(!r.ok)throw new Error(d.detail||d.error);window.open(d.url,"_blank");}catch(e:any){alert(e.message||"Document generation failed.")}}}><FileCheck2 size={15}/><span>{label}</span><small>Generate PDF →</small></button>}
 function Row({label,value}:any){return <div className="detailRow"><span>{label}</span><b>{value}</b></div>}
 function ActionSection({title,icon,actions,children}:any){return <div className="workspaceSection"><div className="workspaceSectionHead"><div><h3>{icon}{title}</h3><p>Connected records for this deal</p></div><div className="workspaceSectionActions">{actions}</div></div>{children}</div>}
 function DataTable({rows,cols,nested}:any){return <div className="tableWrap"><table><thead><tr>{cols.map((c:string)=><th key={c}>{c}</th>)}</tr></thead><tbody>{rows.map((r:any,i:number)=><tr key={r.id||r.reference||i}>{cols.map((c:string)=><td key={c}>{typeof r[c]==="object"&&r[c] ? (r[c].name || r[c].seller?.name || "—") : c.toLowerCase().includes("date")&&r[c] ? new Date(r[c]).toLocaleDateString("en-IN") : c==="amount"||c==="rate"||c==="unitCost" ? "₹"+Number(r[c]||0).toLocaleString("en-IN") : c==="quantity"||c==="reservedQty" ? Number(r[c]||0).toLocaleString("en-IN") : String(r[c]??"—")}</td>)}</tr>)}{!rows.length&&<tr><td colSpan={cols.length}>No records linked yet.</td></tr>}</tbody></table></div>}
