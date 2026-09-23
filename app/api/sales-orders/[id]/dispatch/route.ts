@@ -68,6 +68,32 @@ export async function POST(
         });
       }
 
+      // Dispatch is the point at which the commercial sale becomes an actual realized trade.
+      // Recalculate actual landed cost and profit from the linked purchase/sales records.
+      if (order.dealId) {
+        const dealLedger = await tx.deal.findUnique({
+          where: { id: order.dealId },
+          include: { purchases: true, salesOrders: true },
+        });
+        if (dealLedger) {
+          const purchaseValue = dealLedger.purchases.reduce(
+            (sum, p) => sum + Number(p.quantity) * Number(p.rate) +
+              Number(p.freightCost) + Number(p.loadingCost) + Number(p.otherCost), 0
+          );
+          const salesValue = dealLedger.salesOrders.reduce(
+            (sum, s) => sum + Number(s.quantity) * Number(s.rate), 0
+          );
+          const actualLandedCost = purchaseValue;
+          const actualProfit = salesValue - actualLandedCost;
+          const actualMargin = salesValue > 0 ? actualProfit / salesValue : 0;
+
+          await tx.deal.update({
+            where: { id: order.dealId },
+            data: { actualLandedCost, actualProfit, actualMargin },
+          });
+        }
+      }
+
       const demandId = order.deal?.demandId ?? null;
       if (demandId) {
         const demand = await tx.buyerDemand.findUnique({ where: { id: demandId } });
