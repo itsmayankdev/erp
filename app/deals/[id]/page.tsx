@@ -26,8 +26,8 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     orderBy: { createdAt: "asc" }
   });
   const shortName = (name: string) => {
-    const token = (name || "UNMATCHED").trim().split(/\\s+/)[0].replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-    return token || "UNMATCHED";
+    const token = (name || "UNMATCHED").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    return token.slice(0, 3) || "UNM";
   };
   const pairKey = (d: any) => [d.sellerId, d.buyerId || "UNMATCHED"].join("|");
   let sequence = 0;
