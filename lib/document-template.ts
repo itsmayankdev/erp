@@ -6,7 +6,8 @@ export type DocumentData = { type:DocumentType; number:string; date:Date; compan
 export function titleFor(t:DocumentType){return ({PURCHASE_ORDER:"PURCHASE ORDER",SALES_ORDER:"SALES ORDER",INVOICE:"TAX INVOICE",QUOTATION:"QUOTATION"} as any)[t]||"ERP DOCUMENT"}
 const money=(n:number)=>"₹"+n.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const safe=(v:any)=>v===undefined||v===null||v===""?"—":String(v);
-const address=(c:any)=>[c.address,c.city,c.state,c.pincode].filter(Boolean).join(", ")||"Company address not configured";
+const address=(c:any)=>[c.address,c.city,c.state,c.pincode].filter(Boolean).join(", ")||"Address not configured";
+const taxId=(c:any)=>c?.taxId?String(c.taxId):"";
 export function buildSvg(d:DocumentData){
   const esc=(v:any)=>safe(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   const text=(x:number,y:number,value:any,size=10,weight="400",fill="#172a42",anchor="start") =>
@@ -35,6 +36,7 @@ export function buildSvg(d:DocumentData){
     ${logo}
     ${text(d.company.logoUrl?145:55,72,d.company.name,20,"700","#172a42")}
     ${text(55,94,address(d.company),9,"400","#64748b")}
+    ${text(55,108,taxId(d.company)?("GSTIN / Tax ID: "+taxId(d.company)):"",8,"400","#64748b")}
     ${text(735,76,titleFor(d.type),18,"700","#1f5fc9","end")}
     ${text(735,96,"No. "+d.number,10,"400","#475569","end")}
     ${text(735,112,"Date: "+d.date.toLocaleDateString("en-IN"),10,"400","#475569","end")}
@@ -43,6 +45,7 @@ export function buildSvg(d:DocumentData){
     ${text(70,172,"PARTY",9,"700","#64748b")}
     ${text(70,194,d.party?.name,13,"700","#172a42")}
     ${text(70,214,address(d.party||{}),8,"400","#64748b")}
+    ${text(70,226,taxId(d.party)?("GSTIN / Tax ID: "+taxId(d.party)):"",7,"400","#64748b")}
     <rect x="55" y="270" width="684" height="32" rx="4" fill="#172a42"/>
     ${text(60,291,"#",9,"700","#ffffff")}
     ${text(82,291,"ITEM",9,"700","#ffffff")}
@@ -74,8 +77,8 @@ export async function buildPdf(d:DocumentData){
  const blue=rgb(.12,.37,.79),dark=rgb(.09,.16,.25),muted=rgb(.38,.44,.51),line=rgb(.85,.88,.91);
  const t=(s:string,x:number,y:number,size=8,f=font,color=dark)=>page.drawText(s.slice(0,90),{x,y,size,font:f,color});
  const wrap=(s:string,max=78)=>{const words=String(s||"").split(/\\s+/);const lines:string[]=[];let line="";for(const w of words){if((line+" "+w).trim().length>max){if(line)lines.push(line);line=w}else line=(line+" "+w).trim()}if(line)lines.push(line);return lines.slice(0,4)};
- if(d.company.logoUrl){try{const raw=await readFile(path.join(process.cwd(),"public",d.company.logoUrl.replace(/^\//,"")));const img=d.company.logoUrl.toLowerCase().endsWith(".png")?await pdf.embedPng(raw):await pdf.embedJpg(raw); page.drawImage(img,{x:40,y:780,width:58,height:30});}catch{}} t(safe(d.company.name),108,800,16,bold); t(address(d.company),40,785,7,font,muted); t(titleFor(d.type),410,800,14,bold,blue); t("No. "+d.number,410,784,8,font,muted); t("Date: "+d.date.toLocaleDateString("en-IN"),410,772,8,font,muted); page.drawLine({start:{x:40,y:755},end:{x:555,y:755},thickness:1,color:line});
- page.drawRectangle({x:40,y:680,width:250,height:55,color:rgb(.965,.975,.985)}); t("PARTY",52,717,7,bold,muted); t(safe(d.party?.name),52,700,10,bold); t(address(d.party||{}),52,687,7,font,muted);
+ if(d.company.logoUrl){try{const raw=await readFile(path.join(process.cwd(),"public",d.company.logoUrl.replace(/^\//,"")));const img=d.company.logoUrl.toLowerCase().endsWith(".png")?await pdf.embedPng(raw):await pdf.embedJpg(raw); page.drawImage(img,{x:40,y:780,width:58,height:30});}catch{}} t(safe(d.company.name),108,800,16,bold); t(address(d.company),40,785,7,font,muted); if(taxId(d.company)) t("GSTIN / Tax ID: "+taxId(d.company),40,774,7,font,muted); t(titleFor(d.type),410,800,14,bold,blue); t("No. "+d.number,410,784,8,font,muted); t("Date: "+d.date.toLocaleDateString("en-IN"),410,772,8,font,muted); page.drawLine({start:{x:40,y:755},end:{x:555,y:755},thickness:1,color:line});
+ page.drawRectangle({x:40,y:680,width:250,height:55,color:rgb(.965,.975,.985)}); t("PARTY",52,717,7,bold,muted); t(safe(d.party?.name),52,700,10,bold); t(address(d.party||{}),52,687,7,font,muted); if(taxId(d.party)) t("GSTIN / Tax ID: "+taxId(d.party),52,676,7,font,muted);
  let y=635; page.drawRectangle({x:40,y:y-14,width:515,height:20,color:dark}); ["#","ITEM","QTY","UNIT","RATE","DISC","AMOUNT"].forEach((h,i)=>t(h,[40,60,325,375,410,470,515][i],y-8,7,bold,undefined as any,rgb(1,1,1))); y-=28;
  d.item.forEach((x,i)=>{const amount=x.quantity*x.rate*(1-x.discount/100); t(String(i+1),40,y,7); t(safe(x.name).slice(0,42),60,y,7); t(x.quantity.toLocaleString("en-IN"),325,y,7); t(x.unit,375,y,7); t(money(x.rate),410,y,7); t(x.discount+"%",470,y,7); t(money(amount),515,y,7); y-=22; page.drawLine({start:{x:40,y:y+10},end:{x:555,y:y+10},thickness:.5,color:line});});
  y=Math.max(y,380); t("Subtotal",410,y,8,font,muted); t(money(d.subtotal),515,y,8); y-=18; t("Discount",410,y,8,font,muted); t("-"+money(d.discount),515,y,8); y-=18; t("GST @ "+(Number(d.gstRate)||0)+"%",410,y,8,font,muted); t(money(d.tax),515,y,8); y-=25; page.drawRectangle({x:400,y:y-7,width:155,height:28,color:rgb(.93,.96,1)}); t("TOTAL",412,y+3,9,bold); t(money(d.total),490,y+3,10,bold,undefined as any,blue);
