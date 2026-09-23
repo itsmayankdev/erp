@@ -14,7 +14,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       agreements: { orderBy: { updatedAt: "desc" } },
       purchases: { include: { warehouse: true, dealSource: { include: { seller: true } } }, orderBy: { createdAt: "desc" } },
       salesOrders: { orderBy: { createdAt: "desc" } },
-      stocks: { include: { warehouse: true, stockAllocations: true }, orderBy: { createdAt: "desc" } },
+      stocks: { include: { warehouse: true, purchase: { include: { seller: true } }, stockAllocations: { include: { warehouse: true, salesOrder: { include: { buyer: true } } } } }, orderBy: { createdAt: "desc" } },
       dealSources: { include: { seller: true, opportunity: true }, orderBy: { createdAt: "asc" } }
     }
   });
