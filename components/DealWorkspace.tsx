@@ -18,7 +18,7 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
   const expectedCost=Number(deal.expectedLandedCost||0);
   const expectedRevenue=qty*Number(deal.sellRate||0);
   const expectedProfit=Number(deal.expectedProfit||0);
-  const tabs=["overview","commercial","agreements","purchase","inventory","sales","payments","activity"];
+  const tabs=["overview","commercial","profitability","agreements","purchase","inventory","sales","payments","activity"];
 
   async function post(url:string,body:any){
     setBusy(true);setMessage("");
@@ -179,6 +179,50 @@ export default function DealWorkspace({deal,payments,masters,dealNumber}:any){
         </div>
         <div className="workspaceCard"><h3>Profitability</h3><Row label="Expected revenue" value={money(expectedRevenue)}/><Row label="Expected profit" value={money(expectedProfit)}/><Row label="Margin" value={deal.expectedMargin?Number(deal.expectedMargin).toFixed(2)+"%":"—"}/><Row label="Profit / KG" value={qty?money(expectedProfit/qty):"—"}/></div>
       </div>}
+
+      {tab==="profitability"&&(()=>{
+        const receivedPurchases=(deal.purchases||[]).filter((p:any)=>p.status==="Received");
+        const purchaseCost=receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.quantity||0)*Number(p.rate||0)+Number(p.freightCost||0)+Number(p.loadingCost||0)+Number(p.otherCost||0),0);
+        const purchasedQty=receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.quantity||0),0);
+        const salesRevenue=(deal.salesOrders||[]).reduce((sum:number,o:any)=>sum+Number(o.quantity||0)*Number(o.rate||0),0);
+        const soldQty=(deal.salesOrders||[]).reduce((sum:number,o:any)=>sum+Number(o.quantity||0),0);
+        const actualProfit=salesRevenue-purchaseCost;
+        const actualMargin=salesRevenue>0?(actualProfit/salesRevenue)*100:null;
+        const variance=actualProfit-expectedProfit;
+        return <div className="workspaceGrid">
+          <div className="workspaceCard">
+            <div className="cardTitleRow"><h3>Actual cost</h3><button className="secondaryBtn" onClick={()=>post("/api/deals/"+deal.id+"/profitability",{})} disabled={busy}><RefreshCw size={13}/> Recalculate</button></div>
+            <Row label="Received quantity" value={purchasedQty.toLocaleString("en-IN")+" "+deal.material.unit}/>
+            <Row label="Material cost" value={money(receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.quantity||0)*Number(p.rate||0),0))}/>
+            <Row label="Freight" value={money(receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.freightCost||0),0))}/>
+            <Row label="Loading" value={money(receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.loadingCost||0),0))}/>
+            <Row label="Other cost" value={money(receivedPurchases.reduce((sum:number,p:any)=>sum+Number(p.otherCost||0),0))}/>
+            <Row label="Actual landed cost" value={money(purchaseCost)}/>
+          </div>
+          <div className="workspaceCard">
+            <h3>Actual sales</h3>
+            <Row label="Sold quantity" value={soldQty.toLocaleString("en-IN")+" "+deal.material.unit}/>
+            <Row label="Sales orders" value={(deal.salesOrders||[]).length}/>
+            <Row label="Actual revenue" value={money(salesRevenue)}/>
+            <Row label="Expected revenue" value={money(expectedRevenue)}/>
+          </div>
+          <div className="workspaceCard">
+            <h3>Profit & variance</h3>
+            <Row label="Expected profit" value={money(expectedProfit)}/>
+            <Row label="Actual profit" value={money(actualProfit)}/>
+            <Row label="Profit variance" value={<span className={variance>=0?"positive":"negative"}>{money(variance)}</span>}/>
+            <Row label="Actual margin" value={actualMargin===null?"—":actualMargin.toFixed(2)+"%"}/>
+            <Row label="Actual profit / KG" value={soldQty?money(actualProfit/soldQty):"—"}/>
+          </div>
+          <div className="workspaceCard">
+            <h3>Control status</h3>
+            <Row label="Purchase recorded" value={purchasedQty>0?"Yes":"Pending"}/>
+            <Row label="Sales recorded" value={soldQty>0?"Yes":"Pending"}/>
+            <Row label="Profit status" value={soldQty>0&&purchasedQty>0?"Actual":"Expected only"}/>
+            <p className="muted" style={{marginTop:12}}>Actual profitability is calculated from received purchases and recorded sales orders. Expected profitability remains unchanged for comparison.</p>
+          </div>
+        </div>;
+      })()}
 
       {tab==="agreements"&&<ActionSection title="Agreements" icon={<FileCheck2 size={16}/>} actions={<><button onClick={()=>createAgreement("SELLER")} disabled={busy}><Plus size={14}/> Seller Agreement</button><button onClick={()=>createAgreement("BUYER")} disabled={busy}><Plus size={14}/> Buyer Agreement</button></>}><DataTable rows={deal.agreements} cols={["side","status","version","validUntil"]}/></ActionSection>}
 
