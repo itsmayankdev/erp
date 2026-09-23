@@ -264,6 +264,7 @@ model Purchase {
   material        Material  @relation(fields: [materialId], references: [id])
   warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
   payments        Payment[]
+  stock           Stock?
 }
 
 model SalesOrder {
