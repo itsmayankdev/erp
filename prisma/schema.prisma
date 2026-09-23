@@ -253,6 +253,9 @@ model Stock {
   purchase      Purchase? @relation(fields: [purchaseId], references: [id])
   stockAllocations StockAllocation[]
   createdAt     DateTime   @default(now())
+  @@index([companyId, materialId, status])
+  @@index([dealId])
+  @@index([warehouseId])
 }
 
 model Purchase {
@@ -282,6 +285,10 @@ model Purchase {
   warehouse       Warehouse? @relation(fields: [warehouseId], references: [id])
   payments        Payment[]
   stock           Stock?
+  @@index([companyId, status])
+  @@index([dealId])
+  @@index([dealSourceId])
+  @@index([sellerId, materialId])
 }
 
 model SalesOrder {
@@ -300,12 +307,15 @@ model SalesOrder {
   stockAllocations StockAllocation[]
   @@index([companyId, materialId, status])
   @@index([dealId])
-  @@index([warehouseId])
+  @@index([buyerId])
   company       Company   @relation(fields: [companyId], references: [id])
   deal          Deal?     @relation(fields: [dealId], references: [id])
   buyer         Buyer     @relation(fields: [buyerId], references: [id])
   material      Material  @relation(fields: [materialId], references: [id])
   payments      Payment[]
+  @@index([companyId, status])
+  @@index([dealId])
+  @@index([buyerId])
 }
 
 model Payment {
@@ -344,6 +354,8 @@ model Agreement {
   updatedAt     DateTime  @updatedAt
   company       Company   @relation(fields: [companyId], references: [id])
   deal          Deal      @relation(fields: [dealId], references: [id])
+  @@index([companyId, status])
+  @@index([dealId])
 }
 
 model DocumentSequence {
@@ -377,6 +389,8 @@ model Document {
   uploadedBy  String?
   createdAt   DateTime @default(now())
   company     Company  @relation(fields: [companyId], references: [id])
+  @@index([companyId, status])
+  @@index([entityType, entityId])
 }
 
 model PriceIntelligence {
@@ -391,6 +405,7 @@ model PriceIntelligence {
   notes      String?
   company    Company   @relation(fields: [companyId], references: [id])
   material   Material  @relation(fields: [materialId], references: [id])
+  @@index([companyId, materialId, capturedAt])
 }
 
 model AuditLog {
@@ -405,6 +420,8 @@ model AuditLog {
   createdAt  DateTime @default(now())
   company   Company  @relation(fields: [companyId], references: [id])
   user      User?    @relation(fields: [userId], references: [id])
+  @@index([companyId, entity, entityId])
+  @@index([createdAt])
 }
 
 model DealSource {
@@ -422,6 +439,8 @@ model DealSource {
   opportunity   Opportunity? @relation(fields: [opportunityId], references: [id])
   seller        Seller?     @relation(fields: [sellerId], references: [id])
   purchases     Purchase[]   @relation("DealSourcePurchases")
+  @@index([companyId, dealId])
+  @@index([opportunityId])
 }
 
 model StockAllocation {
@@ -438,4 +457,6 @@ model StockAllocation {
   stock        Stock       @relation(fields: [stockId], references: [id])
   salesOrder   SalesOrder  @relation(fields: [salesOrderId], references: [id])
   warehouse    Warehouse?  @relation(fields: [warehouseId], references: [id])
+  @@index([companyId, salesOrderId, status])
+  @@index([stockId, status])
 }
