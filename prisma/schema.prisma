@@ -313,9 +313,6 @@ model SalesOrder {
   buyer         Buyer     @relation(fields: [buyerId], references: [id])
   material      Material  @relation(fields: [materialId], references: [id])
   payments      Payment[]
-  @@index([companyId, status])
-  @@index([dealId])
-  @@index([buyerId])
 }
 
 model Payment {
