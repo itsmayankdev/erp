@@ -23,8 +23,10 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    return true;
  }),[rows]);
 
- const totalReceivable=documentBalances.filter((d:any)=>d.kind==="salesOrder").reduce((a:number,d:any)=>a+d.outstanding,0);
- const totalPayable=documentBalances.filter((d:any)=>d.kind==="purchase").reduce((a:number,d:any)=>a+d.outstanding,0);
+ const receivableDocs=documentBalances.filter((d:any)=>d.kind==="salesOrder"&&d.outstanding>0);
+ const payableDocs=documentBalances.filter((d:any)=>d.kind==="purchase"&&d.outstanding>0);
+ const totalReceivable=receivableDocs.reduce((a:number,d:any)=>a+d.outstanding,0);
+ const totalPayable=payableDocs.reduce((a:number,d:any)=>a+d.outstanding,0);
  const received=rows.filter((r:any)=>["Received","RECEIPT"].includes(r.type)).reduce((a:number,r:any)=>a+Number(r.amount||0),0);
  const paid=rows.filter((r:any)=>["Paid","PAYMENT"].includes(r.type)).reduce((a:number,r:any)=>a+Number(r.amount||0),0);
 
@@ -61,6 +63,32 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
    <div><b>RECEIVABLE OUTSTANDING</b><strong>{money(totalReceivable)}</strong><span>Customer balances to collect</span></div>
    <div><b>PAYABLE OUTSTANDING</b><strong>{money(totalPayable)}</strong><span>Supplier balances to pay</span></div>
   </section>
+  <div className="paymentSettlementGrid">
+   <section className="modulePanel paymentSettlementPanel">
+    <div className="panelHead">
+     <div><h3>To Pay</h3><p>Supplier balances that your company needs to pay.</p></div>
+     <strong className="paymentSectionTotal">{money(totalPayable)}</strong>
+    </div>
+    <div className="tableWrap"><table><thead><tr><th>Supplier</th><th>Purchase</th><th>Total</th><th>Paid</th><th>Outstanding</th><th>Action</th></tr></thead>
+    <tbody>{payableDocs.map((d:any)=><tr key={"pay-"+d.id}>
+      <td><b>{d.party}</b></td><td>{d.reference}</td><td>{money(d.total)}</td><td>{money(d.paid)}</td><td><b>{money(d.outstanding)}</b></td>
+      <td><button className="secondaryBtn paymentSettleBtn" onClick={()=>{setForm({type:"Paid",documentId:d.id,reference:"",amount:String(d.outstanding),dueDate:"",notes:""});setMessage("");setOpen(true)}}>Pay {money(d.outstanding)}</button></td>
+    </tr>)}{!payableDocs.length&&<tr><td colSpan={6} className="emptyState">No supplier payments are currently outstanding.</td></tr>}</tbody></table></div>
+   </section>
+
+   <section className="modulePanel paymentSettlementPanel">
+    <div className="panelHead">
+     <div><h3>To Receive</h3><p>Customer balances that your company needs to collect.</p></div>
+     <strong className="paymentSectionTotal">{money(totalReceivable)}</strong>
+    </div>
+    <div className="tableWrap"><table><thead><tr><th>Customer</th><th>Sales Order</th><th>Total</th><th>Received</th><th>Outstanding</th><th>Action</th></tr></thead>
+    <tbody>{receivableDocs.map((d:any)=><tr key={"receive-"+d.id}>
+      <td><b>{d.party}</b></td><td>{d.reference}</td><td>{money(d.total)}</td><td>{money(d.paid)}</td><td><b>{money(d.outstanding)}</b></td>
+      <td><button className="secondaryBtn paymentSettleBtn" onClick={()=>{setForm({type:"Received",documentId:d.id,reference:"",amount:String(d.outstanding),dueDate:"",notes:""});setMessage("");setOpen(true)}}>Receive {money(d.outstanding)}</button></td>
+    </tr>)}{!receivableDocs.length&&<tr><td colSpan={6} className="emptyState">No customer receipts are currently outstanding.</td></tr>}</tbody></table></div>
+   </section>
+  </div>
+
   <section className="modulePanel">
    <div className="panelHead">
     <div><h3>Payment register</h3><p>Every payment is linked to the purchase or sales order it settles.</p></div>
@@ -75,7 +103,7 @@ export default function PaymentsClient({companyId,initialRows,documents}:any){
     const counterparty=r.buyer?.name||r.purchase?.seller?.name||r.salesOrder?.buyer?.name||"—";
     const linked=r.purchase?.reference||r.salesOrder?.reference||"Unlinked";
     const doc=documentBalances.find((d:any)=>(r.purchaseId&&d.kind==="purchase"&&d.id===r.purchaseId)||(r.salesOrderId&&d.kind==="salesOrder"&&d.id===r.salesOrderId));
-    const paymentKey=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;    const isLatestPayment=latestPaymentIds.get(paymentKey)===r.id;    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.purchaseId?"Payable":r.salesOrderId?"Receivable":r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0&&isLatestPayment?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>Pay remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
+    const paymentKey=r.purchaseId?"purchase:"+r.purchaseId:"sales:"+r.salesOrderId;    const isLatestPayment=latestPaymentIds.get(paymentKey)===r.id;    return <tr key={r.id}><td>{new Date(r.createdAt).toLocaleDateString("en-IN")}</td><td><b>{r.reference}</b></td><td>{r.purchaseId?"Payable":r.salesOrderId?"Receivable":r.type}</td><td>{counterparty}</td><td>{linked}</td><td><b>{money(r.amount)}</b></td><td>{r.dueDate?new Date(r.dueDate).toLocaleDateString("en-IN"):"—"}</td><td><span className={"statusPill status-"+String(r.status||"Pending").toLowerCase().replace(/\s+/g,"-")}>{r.status||"Pending"}</span></td><td>{doc&&doc.outstanding>0&&isLatestPayment?<button className="secondaryBtn paymentSettleBtn" onClick={()=>startSettlement(r)}>{doc.kind==="purchase"?"Pay":"Receive"} remaining {money(doc.outstanding)}</button>:<span className="muted">—</span>}</td></tr>
    })}{!filtered.length&&<tr><td colSpan={9} className="emptyState">No payment records match this filter.</td></tr>}</tbody></table></div>
   </section>
 
