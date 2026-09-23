@@ -36,5 +36,5 @@ jobs:
       - run: npm ci
       - run: npx prisma validate
       - run: npx prisma generate
-      - run: npx prisma migrate deploy
+      - run: npx prisma db push --accept-data-loss
       - run: npm run build
