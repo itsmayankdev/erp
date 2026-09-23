@@ -44,6 +44,22 @@ async function main() {
     await prisma.deal.deleteMany({ where: { companyId: company.id, sellerId: legacySeller.id } });
     await prisma.seller.delete({ where: { id: legacySeller.id } });
   }
+  // Remove orphan placeholder sellers created by the early UI prototype.
+  // Only delete them when they have no commercial relationships.
+  for (const legacyName of ["ABC Engineering", "Company 1"]) {
+    const legacyRows = await prisma.seller.findMany({ where: { companyId: company.id, name: legacyName } });
+    for (const legacy of legacyRows) {
+      const [opportunitiesCount, dealsCount, purchasesCount] = await Promise.all([
+        prisma.opportunity.count({ where: { companyId: company.id, sellerId: legacy.id } }),
+        prisma.deal.count({ where: { companyId: company.id, sellerId: legacy.id } }),
+        prisma.purchase.count({ where: { companyId: company.id, sellerId: legacy.id } })
+      ]);
+      if (opportunitiesCount === 0 && dealsCount === 0 && purchasesCount === 0) {
+        await prisma.seller.delete({ where: { id: legacy.id } });
+      }
+    }
+  }
+
   const sellerNames = ["ABC Steel Ltd.","PQR Engineering","Steel Supplier A","Factory Source"];
   const sellerMap: Record<string,string> = {};
   for (const name of sellerNames) {
