@@ -128,6 +128,16 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
     columns = ["Buyer", "Material", "Qty", "Target Rate", "Required By", "Status"];
   }
 
+  const dealNumbers = new Map<string,string>();
+  if (module === "deals" || module === "agreements") {
+    const allDeals = await prisma.deal.findMany({ where: { companyId: company.id }, select: { id:true,sellerId:true,buyerId:true,createdAt:true,seller:{select:{name:true}},buyer:{select:{name:true}} }, orderBy:{createdAt:"asc"} });
+    const short=(name:string)=>{const s=(name||"UNM").replace(/[^a-zA-Z0-9]/g,"").toUpperCase();return s.slice(0,3)||"UNM"};
+    const counts=new Map<string,number>();
+    for(const d of allDeals){const key=d.sellerId+"|"+(d.buyerId||"UNMATCHED");const n=(counts.get(key)||0)+1;counts.set(key,n);dealNumbers.set(d.id,`DL-${short(d.buyer?.name||"UNMATCHED")}_${short(d.seller?.name||"UNKNOWN")}_${n}`);}
+    if (module === "deals") rows = rows.map((r:any)=>({...r,dealNumber:dealNumbers.get(r.id)||r.id}));
+    if (module === "agreements") rows = rows.map((r:any)=>({...r,dealNumber:dealNumbers.get(r.dealId)||r.deal?.id||"—"}));
+  }
+
   const clientRows = JSON.parse(JSON.stringify(rows));
 
   return (
@@ -140,7 +150,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
         <div className="panelHead"><div><h3>{title} records</h3><p>Live data from PostgreSQL</p></div></div>
         <div className="tableWrap"><table><thead><tr>{columns.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>
           {clientRows.map((r:any)=><tr key={r.id}>
-            {module==="deals" && <><td><Link className="dealLink" href={"/deals/"+r.id}><b>{r.id.slice(0,10)}</b><small>{r.procurementType}</small></Link></td><td>{r.material.name}</td><td>{r.seller.name}</td><td>{r.buyer?.name ?? "—"}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.material.unit}</td><td>₹{Number(r.buyRate).toLocaleString("en-IN")}</td><td>{r.sellRate ? "₹"+Number(r.sellRate).toLocaleString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
+            {module==="deals" && <><td><Link className="dealLink" href={"/deals/"+r.id}><b>{r.dealNumber||r.id.slice(0,10)}</b><small>{r.procurementType}</small></Link></td><td>{r.material.name}</td><td>{r.seller.name}</td><td>{r.buyer?.name ?? "—"}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.material.unit}</td><td>₹{Number(r.buyRate).toLocaleString("en-IN")}</td><td>{r.sellRate ? "₹"+Number(r.sellRate).toLocaleString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="opportunities" && <><td>{r.material.name}</td><td>{r.seller.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{r.askingRate ? "₹"+Number(r.askingRate) : "—"}</td><td>{r.estimatedMarketRate ? "₹"+Number(r.estimatedMarketRate) : "—"}</td><td>{r.sourceType}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="market-intelligence" && <><td>{r.material.name}</td><td>{r.source ?? "—"}</td><td>{r.location ?? "—"}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td>{r.unit}</td><td>{new Date(r.capturedAt).toLocaleDateString("en-IN")}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="inventory" && <><td>{r.material.name}</td><td>{r.warehouse?.name ?? "Unassigned"}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>{Number(r.reservedQty).toLocaleString("en-IN")}</td><td>{r.unitCost ? "₹"+Number(r.unitCost) : "—"}</td><td><span className="status">{r.status}</span></td></>}
@@ -148,7 +158,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
             {(module==="sales" || module==="dispatch") && <><td>{r.reference}</td><td>{r.material.name}</td><td>{r.buyer.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")}</td><td>₹{Number(r.rate).toLocaleString("en-IN")}</td><td><span className="status">{r.status}</span></td><td>{r.dispatchDate ? new Date(r.dispatchDate).toLocaleDateString("en-IN") : "Pending"}</td></>}
             {module==="customers-and-buyers" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.email ?? "—"}</td><td>{r.creditLimit ? "₹"+Number(r.creditLimit).toLocaleString("en-IN") : "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="warehouses" && <><td>{r.name}</td><td>{r.city ?? "—"}</td><td>{r.capacity ? Number(r.capacity).toLocaleString("en-IN") : "—"}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
-            {module==="agreements" && <><td>{r.deal.id.slice(0,10)}</td><td>{r.side}</td><td>v{r.version}</td><td><span className="status">{r.status}</span></td><td>{r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}</td></>}
+            {module==="agreements" && <><td>{r.dealNumber||r.deal.id.slice(0,10)}</td><td>{r.side}</td><td>v{r.version}</td><td><span className="status">{r.status}</span></td><td>{r.validUntil ? new Date(r.validUntil).toLocaleDateString("en-IN") : "—"}</td></>}
             {module==="buyer-demands" && <><td>{r.buyer.name}</td><td>{r.material.name}</td><td>{Number(r.quantity).toLocaleString("en-IN")} {r.unit}</td><td>{Number(r.matchedQuantity ?? 0).toLocaleString("en-IN")} {r.unit}</td><td>{Number(r.fulfilledQuantity ?? 0).toLocaleString("en-IN")} {r.unit}</td><td>{r.targetRate ? "₹"+Number(r.targetRate) : "—"}</td><td>{r.requiredBy ? new Date(r.requiredBy).toLocaleDateString("en-IN") : "—"}</td><td><span className="status">{r.status}</span></td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="sellers" && <><td>{r.name}</td><td>{r.category ?? "—"}</td><td>{r.city ?? "—"}</td><td>{r.phone ?? "—"}</td><td>{r.reliability ?? "—"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
             {module==="materials" && <><td>{r.code ?? "—"}</td><td>{r.name}</td><td>{r.grade ?? "—"}</td><td>{r.specification ?? "—"}</td><td>{r.unit}</td><td>{r.active ? "Active" : "Inactive"}</td><td><RecordActions module={module} row={r} mode="edit"/></td></>}
