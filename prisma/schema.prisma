@@ -58,6 +58,7 @@ model User {
   createdAt   DateTime    @default(now())
   company     Company     @relation(fields: [companyId], references: [id])
   auditLogs   AuditLog[]
+  @@index([companyId])
 }
 
 model Seller {
@@ -79,6 +80,7 @@ model Seller {
   opportunities Opportunity[]
   purchases     Purchase[]
   dealSources   DealSource[]
+  @@index([companyId])
 }
 
 model Buyer {
@@ -99,6 +101,7 @@ model Buyer {
   demands     BuyerDemand[]
   salesOrders SalesOrder[]
   payments    Payment[]
+  @@index([companyId])
 }
 
 model Material {
@@ -119,6 +122,8 @@ model Material {
   purchases     Purchase[]
   salesOrders   SalesOrder[]
   priceIntel    PriceIntelligence[]
+  @@index([companyId])
+  @@index([name])
 }
 
 model Warehouse {
@@ -133,6 +138,7 @@ model Warehouse {
   stocks    Stock[]
   purchases Purchase[]
   stockAllocations StockAllocation[]
+  @@index([companyId])
 }
 
 model Opportunity {
@@ -224,6 +230,9 @@ model Deal {
   salesOrders        SalesOrder[]
   agreements         Agreement[]
   dealSources        DealSource[]
+  @@index([companyId, status])
+  @@index([materialId, status])
+  @@index([sellerId, status])
 }
 
 model Stock {
@@ -289,6 +298,9 @@ model SalesOrder {
   deliveredAt   DateTime?
   createdAt     DateTime  @default(now())
   stockAllocations StockAllocation[]
+  @@index([companyId, materialId, status])
+  @@index([dealId])
+  @@index([warehouseId])
   company       Company   @relation(fields: [companyId], references: [id])
   deal          Deal?     @relation(fields: [dealId], references: [id])
   buyer         Buyer     @relation(fields: [buyerId], references: [id])
